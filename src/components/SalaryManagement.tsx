@@ -1,0 +1,486 @@
+import React, { useState } from 'react';
+import { Staff, Attendance, SalaryDetail, AdvanceDeduction, PartTimeSalaryDetail } from '../types';
+import { DollarSign, Download, Users, Calendar, TrendingUp, Edit2, Save, X } from 'lucide-react';
+import { calculateAttendanceMetrics, calculateSalary, calculatePartTimeSalary, roundToNearest10 } from '../utils/salaryCalculations';
+import { exportSalaryPDF } from '../utils/pdfExport';
+
+interface SalaryManagementProps {
+  staff: Staff[];
+  attendance: Attendance[];
+  advances: AdvanceDeduction[];
+  onUpdateAdvances: (staffId: string, month: number, year: number, advances: Partial<AdvanceDeduction>) => void;
+}
+
+const SalaryManagement: React.FC<SalaryManagementProps> = ({ 
+  staff, 
+  attendance, 
+  advances, 
+  onUpdateAdvances 
+}) => {
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [editMode, setEditMode] = useState(false);
+  const [tempAdvances, setTempAdvances] = useState<{[key: string]: Partial<AdvanceDeduction>}>({});
+
+  const activeStaff = staff.filter(member => member.isActive);
+
+  const calculateSalaryDetails = (): SalaryDetail[] => {
+    return activeStaff.map(member => {
+      const attendanceMetrics = calculateAttendanceMetrics(member.id, attendance, selectedYear, selectedMonth);
+      const memberAdvances = advances.find(adv => 
+        adv.staffId === member.id && 
+        adv.month === selectedMonth && 
+        adv.year === selectedYear
+      );
+      
+      return calculateSalary(member, attendanceMetrics, memberAdvances, advances, selectedMonth, selectedYear);
+    });
+  };
+
+  // Calculate part-time salaries
+  const calculatePartTimeSalaries = (): PartTimeSalaryDetail[] => {
+    const monthlyAttendance = attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      return record.isPartTime && 
+             recordDate.getMonth() === selectedMonth && 
+             recordDate.getFullYear() === selectedYear;
+    });
+
+    const uniqueStaff = new Map();
+    monthlyAttendance.forEach(record => {
+      if (record.staffName) {
+        uniqueStaff.set(record.staffName, {
+          name: record.staffName,
+          location: record.location || 'Unknown'
+        });
+      }
+    });
+
+    return Array.from(uniqueStaff.values()).map(staff => 
+      calculatePartTimeSalary(
+        staff.name,
+        staff.location,
+        attendance,
+        selectedYear,
+        selectedMonth
+      )
+    );
+  };
+
+  const salaryDetails = calculateSalaryDetails();
+  const partTimeSalaries = calculatePartTimeSalaries();
+  const totalSalaryDisbursed = salaryDetails.reduce((sum, detail) => sum + detail.netSalary, 0);
+  const totalPartTimeEarnings = partTimeSalaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+  const averageAttendance = salaryDetails.reduce((sum, detail) => sum + detail.presentDays + (detail.halfDays * 0.5), 0) / salaryDetails.length;
+
+  const handleEnableEditAll = () => {
+    const initialTempAdvances: {[key: string]: Partial<AdvanceDeduction>} = {};
+    
+    activeStaff.forEach(member => {
+      const currentAdvances = advances.find(adv => 
+        adv.staffId === member.id && 
+        adv.month === selectedMonth && 
+        adv.year === selectedYear
+      );
+      
+      initialTempAdvances[member.id] = {
+        oldAdvance: currentAdvances?.oldAdvance || 0,
+        currentAdvance: currentAdvances?.currentAdvance || 0,
+        deduction: currentAdvances?.deduction || 0
+      };
+    });
+    
+    setTempAdvances(initialTempAdvances);
+    setEditMode(true);
+  };
+
+  const handleSaveAll = () => {
+    Object.keys(tempAdvances).forEach(staffId => {
+      const temp = tempAdvances[staffId];
+      if (temp) {
+        const newAdvance = roundToNearest10((temp.oldAdvance || 0) + (temp.currentAdvance || 0) - (temp.deduction || 0));
+        
+        onUpdateAdvances(staffId, selectedMonth, selectedYear, {
+          ...temp,
+          newAdvance,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    });
+    
+    setEditMode(false);
+    setTempAdvances({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setTempAdvances({});
+  };
+
+  const handleExportPDF = () => {
+    exportSalaryPDF(salaryDetails, partTimeSalaries, staff, selectedMonth, selectedYear);
+  };
+
+  const getAdvanceForStaff = (staffId: string) => {
+    return advances.find(adv => 
+      adv.staffId === staffId && 
+      adv.month === selectedMonth && 
+      adv.year === selectedYear
+    );
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+          <DollarSign className="text-green-600" size={32} />
+          Enhanced Salary Management
+        </h1>
+        <button 
+          onClick={handleExportPDF}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Download size={16} />
+          Download PDF
+        </button>
+      </div>
+
+      {/* Month/Year Selection */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
+        <div className="flex items-center justify-center gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i} value={i}>
+                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {Array.from({ length: 5 }, (_, i) => (
+                <option key={i} value={new Date().getFullYear() - 2 + i}>
+                  {new Date().getFullYear() - 2 + i}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Active Staff</p>
+              <p className="text-3xl font-bold text-blue-600">{activeStaff.length}</p>
+              <p className="text-xs text-gray-500">Active employees</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Users className="text-blue-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Full-Time Salary</p>
+              <p className="text-3xl font-bold text-green-600">₹{totalSalaryDisbursed.toLocaleString()}</p>
+              <p className="text-xs text-gray-500">
+                For {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="text-green-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Part-Time Earnings</p>
+              <p className="text-3xl font-bold text-purple-600">₹{totalPartTimeEarnings.toLocaleString()}</p>
+              <p className="text-xs text-gray-500">{partTimeSalaries.length} staff</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="text-purple-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Average Attendance</p>
+              <p className="text-3xl font-bold text-orange-600">{averageAttendance.toFixed(1)}</p>
+              <p className="text-xs text-gray-500">Days per employee</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Calendar className="text-orange-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Disbursed</p>
+              <p className="text-3xl font-bold text-indigo-600">₹{(totalSalaryDisbursed + totalPartTimeEarnings).toLocaleString()}</p>
+              <p className="text-xs text-gray-500">Full + Part-time</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-indigo-600" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Full-Time Salary Details Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">
+                Full-Time Salary Details - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                All values rounded to nearest ₹10. Sunday absents incur ₹500 penalty.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {editMode ? (
+                <>
+                  <button
+                    onClick={handleSaveAll}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Save size={16} />
+                    Save All
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEnableEditAll}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Edit2 size={16} />
+                  Enable Edit for All
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Half Days</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Leave</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Abs</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Old Adv</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cur Adv</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Deduction</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Penalty</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gross</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Net Salary</th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">New Adv</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {salaryDetails.map((detail, index) => {
+                const staffMember = activeStaff.find(s => s.id === detail.staffId);
+                const tempData = tempAdvances[detail.staffId];
+                
+                return (
+                  <tr key={detail.staffId} className="hover:bg-gray-50 text-sm">
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-900">{index + 1}</td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
+                      {staffMember?.name}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        {detail.presentDays}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        {detail.halfDays}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        detail.leaveDays > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {detail.leaveDays}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        detail.sundayAbsents > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {detail.sundayAbsents}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={tempData?.oldAdvance || 0}
+                          onChange={(e) => setTempAdvances({
+                            ...tempAdvances,
+                            [detail.staffId]: { ...tempData, oldAdvance: Number(e.target.value) }
+                          })}
+                          className="w-20 px-2 py-1 text-xs border rounded"
+                        />
+                      ) : (
+                        <span className="text-blue-600">₹{detail.oldAdv}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={tempData?.currentAdvance || 0}
+                          onChange={(e) => setTempAdvances({
+                            ...tempAdvances,
+                            [detail.staffId]: { ...tempData, currentAdvance: Number(e.target.value) }
+                          })}
+                          className="w-20 px-2 py-1 text-xs border rounded"
+                        />
+                      ) : (
+                        <span className="text-blue-600">₹{detail.curAdv}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={tempData?.deduction || 0}
+                          onChange={(e) => setTempAdvances({
+                            ...tempAdvances,
+                            [detail.staffId]: { ...tempData, deduction: Number(e.target.value) }
+                          })}
+                          className="w-20 px-2 py-1 text-xs border rounded"
+                        />
+                      ) : (
+                        <span className="text-red-600">₹{detail.deduction}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.basicEarned}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.incentiveEarned}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.hraEarned}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className={`${detail.sundayPenalty > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                        ₹{detail.sundayPenalty}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center font-semibold text-green-600">
+                      ₹{detail.grossSalary}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center font-bold text-green-700">
+                      ₹{detail.netSalary}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-blue-600">₹{detail.newAdv}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Part-Time Salary Details */}
+      {partTimeSalaries.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800">
+              Part-Time Staff Earnings - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Rate: ₹800/day (Both shifts), ₹400/shift (Single shift)
+            </p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shifts</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Day</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Shift</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {partTimeSalaries.map((salary, index) => (
+                  <tr key={`${salary.staffName}-${index}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {salary.staffName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                        {salary.location}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                      {salary.totalDays}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                      {salary.totalShifts}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                      ₹{salary.ratePerDay}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                      ₹{salary.ratePerShift}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-purple-600">
+                      ₹{salary.totalEarnings.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SalaryManagement;
