@@ -35,10 +35,22 @@ export const staffService = {
   },
 
   async update(id: string, updates: Partial<Staff>): Promise<Staff> {
-    const dbUpdates = {
-      ...updates,
+    // Map camelCase properties to snake_case database column names
+    const dbUpdates: Partial<Omit<DatabaseStaff, 'id' | 'created_at'>> = {
       updated_at: new Date().toISOString()
     };
+
+    // Map each camelCase property to its snake_case equivalent
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.experience !== undefined) dbUpdates.experience = updates.experience;
+    if (updates.basicSalary !== undefined) dbUpdates.basic_salary = updates.basicSalary;
+    if (updates.incentive !== undefined) dbUpdates.incentive = updates.incentive;
+    if (updates.hra !== undefined) dbUpdates.hra = updates.hra;
+    if (updates.totalSalary !== undefined) dbUpdates.total_salary = updates.totalSalary;
+    if (updates.joinedDate !== undefined) dbUpdates.joined_date = updates.joinedDate;
+    if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
     const { data, error } = await supabase
       .from('staff')
