@@ -97,7 +97,9 @@ function App() {
     isPartTime?: boolean,
     staffName?: string,
     shift?: 'Morning' | 'Evening' | 'Both',
-    location?: string
+    location?: string,
+    salary?: number,
+    salaryOverride?: boolean
   ) => {
     const attendanceValue = status === 'Present' ? 1 : status === 'Half Day' ? 0.5 : 0;
     
@@ -110,7 +112,9 @@ function App() {
       isPartTime: !!isPartTime,
       staffName,
       shift,
-      location
+      location,
+      salary,
+      salaryOverride
     };
 
     try {

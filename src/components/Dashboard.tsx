@@ -48,6 +48,22 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
     }
   ];
 
+  // Helper function to format staff names with shift info
+  const formatStaffName = (staffId: string, isPartTime: boolean = false, staffName?: string, shift?: string) => {
+    if (isPartTime) {
+      return shift ? `${staffName} (${shift})` : staffName;
+    }
+    
+    const staffMember = activeStaff.find(s => s.id === staffId);
+    const attendanceRecord = todayAttendance.find(a => a.staffId === staffId && !a.isPartTime);
+    
+    if (attendanceRecord?.status === 'Half Day' && attendanceRecord?.shift) {
+      return `${staffMember?.name} (${attendanceRecord.shift})`;
+    }
+    
+    return staffMember?.name;
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -150,36 +166,57 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
           {locations.map((location) => {
             // Get part-time staff for this location
             const locationPartTime = partTimeAttendance.filter(record => 
-              record.location === location.name || 
-              (record.staffName && attendance.find(a => a.id === record.id)?.location === location.name)
+              record.location === location.name
             );
+
+            // Get full-time staff with detailed names (including shift info for half-day)
+            const locationFullTimePresent = fullTimeAttendance.filter(record => {
+              const staffMember = activeStaff.find(s => s.id === record.staffId);
+              const attendanceLocation = record.location || staffMember?.location;
+              return record.status === 'Present' && attendanceLocation === location.name;
+            }).map(record => formatStaffName(record.staffId, false));
+
+            const locationFullTimeHalfDay = fullTimeAttendance.filter(record => {
+              const staffMember = activeStaff.find(s => s.id === record.staffId);
+              const attendanceLocation = record.location || staffMember?.location;
+              return record.status === 'Half Day' && attendanceLocation === location.name;
+            }).map(record => formatStaffName(record.staffId, false));
+
+            const locationFullTimeAbsent = fullTimeAttendance.filter(record => {
+              const staffMember = activeStaff.find(s => s.id === record.staffId);
+              const attendanceLocation = record.location || staffMember?.location;
+              return record.status === 'Absent' && attendanceLocation === location.name;
+            }).map(record => formatStaffName(record.staffId, false));
+
+            // Calculate total present value for this location
+            const locationTotalPresent = locationFullTimePresent.length + (locationFullTimeHalfDay.length * 0.5);
 
             return (
               <div key={location.name} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
                 <h3 className="text-lg font-semibold text-blue-600 mb-4 text-center">
-                  {location.name} - Total Present Value: {location.stats.totalPresentValue}
+                  {location.name} - Total Present Value: {locationTotalPresent}
                   {locationPartTime.length > 0 && ` + ${locationPartTime.length} Part-Time`}
                 </h3>
                 
                 <div className="grid grid-cols-4 gap-4">
                   <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-green-600 mb-1">Present: {location.stats.present}</p>
+                    <p className="text-lg font-bold text-green-600 mb-1">Present: {locationFullTimePresent.length}</p>
                     <p className="text-sm text-gray-600">
-                      {location.stats.presentNames.length > 0 ? location.stats.presentNames.join(', ') : 'None'}
+                      {locationFullTimePresent.length > 0 ? locationFullTimePresent.join(', ') : 'None'}
                     </p>
                   </div>
                   
                   <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-yellow-600 mb-1">Half-day: {location.stats.halfDay}</p>
+                    <p className="text-lg font-bold text-yellow-600 mb-1">Half-day: {locationFullTimeHalfDay.length}</p>
                     <p className="text-sm text-gray-600">
-                      {location.stats.halfDayNames.length > 0 ? location.stats.halfDayNames.join(', ') : 'None'}
+                      {locationFullTimeHalfDay.length > 0 ? locationFullTimeHalfDay.join(', ') : 'None'}
                     </p>
                   </div>
                   
                   <div className="bg-red-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-red-600 mb-1">Absent: {location.stats.absent}</p>
+                    <p className="text-lg font-bold text-red-600 mb-1">Absent: {locationFullTimeAbsent.length}</p>
                     <p className="text-sm text-gray-600">
-                      {location.stats.absentNames.length > 0 ? location.stats.absentNames.join(', ') : 'None'}
+                      {locationFullTimeAbsent.length > 0 ? locationFullTimeAbsent.join(', ') : 'None'}
                     </p>
                   </div>
 
@@ -187,7 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
                     <p className="text-lg font-bold text-purple-600 mb-1">Part-Time: {locationPartTime.length}</p>
                     <p className="text-sm text-gray-600">
                       {locationPartTime.length > 0 
-                        ? locationPartTime.map(pt => `${pt.staffName} (${pt.shift})`).join(', ')
+                        ? locationPartTime.map(pt => formatStaffName(pt.staffId, true, pt.staffName, pt.shift)).join(', ')
                         : 'None'
                       }
                     </p>

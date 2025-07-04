@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Attendance, PartTimeSalaryDetail } from '../types';
-import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X } from 'lucide-react';
+import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet } from 'lucide-react';
 import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
 import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 
@@ -21,14 +21,53 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [editSalary, setEditSalary] = useState<number>(0);
+  const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>('All');
   const [newStaffData, setNewStaffData] = useState({
     name: '',
     location: 'Big Shop' as 'Big Shop' | 'Small Shop' | 'Godown',
     shift: 'Morning' as 'Morning' | 'Evening' | 'Both'
   });
 
-  // Get unique part-time staff for the selected month
-  const getPartTimeStaffForMonth = () => {
+  // Get current week's Monday
+  const getCurrentWeekMonday = (date: Date) => {
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+  };
+
+  // Get unique part-time staff for the current week
+  const getCurrentWeekPartTimeStaff = () => {
+    const currentWeekMonday = getCurrentWeekMonday(new Date(selectedDate));
+    const weekEnd = new Date(currentWeekMonday);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const weeklyAttendance = attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      return record.isPartTime && 
+             recordDate >= currentWeekMonday && 
+             recordDate <= weekEnd;
+    });
+
+    const uniqueStaff = new Map();
+    weeklyAttendance.forEach(record => {
+      if (record.staffName) {
+        const key = `${record.staffName}-${record.location}`;
+        if (!uniqueStaff.has(key)) {
+          uniqueStaff.set(key, {
+            name: record.staffName,
+            location: record.location || 'Unknown',
+            records: []
+          });
+        }
+        uniqueStaff.get(key).records.push(record);
+      }
+    });
+
+    return Array.from(uniqueStaff.values());
+  };
+
+  // Calculate part-time salaries for the selected month
+  const calculatePartTimeSalaries = (): PartTimeSalaryDetail[] => {
     const monthlyAttendance = attendance.filter(record => {
       const recordDate = new Date(record.date);
       return record.isPartTime && 
@@ -39,20 +78,15 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     const uniqueStaff = new Map();
     monthlyAttendance.forEach(record => {
       if (record.staffName) {
-        uniqueStaff.set(record.staffName, {
+        const key = `${record.staffName}-${record.location}`;
+        uniqueStaff.set(key, {
           name: record.staffName,
           location: record.location || 'Unknown'
         });
       }
     });
 
-    return Array.from(uniqueStaff.values());
-  };
-
-  // Calculate part-time salaries
-  const calculatePartTimeSalaries = (): PartTimeSalaryDetail[] => {
-    const partTimeStaff = getPartTimeStaffForMonth();
-    return partTimeStaff.map(staff => 
+    return Array.from(uniqueStaff.values()).map(staff => 
       calculatePartTimeSalary(
         staff.name,
         staff.location,
@@ -71,10 +105,20 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     record.isPartTime && record.date === selectedDate
   );
 
+  // Filter by location
+  const filteredTodayAttendance = locationFilter === 'All' 
+    ? todayPartTimeAttendance 
+    : todayPartTimeAttendance.filter(record => record.location === locationFilter);
+
   const handleAddPartTimeAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const staffId = `pt_${Date.now()}`;
-    const defaultSalary = getPartTimeDailySalary(selectedDate);
+    
+    // Calculate salary based on shift and day
+    let defaultSalary = getPartTimeDailySalary(selectedDate);
+    if (newStaffData.shift === 'Morning' || newStaffData.shift === 'Evening') {
+      defaultSalary = Math.round(defaultSalary / 2); // Half day rate
+    }
     
     onUpdateAttendance(
       staffId,
@@ -124,6 +168,15 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     exportSalaryPDF([], partTimeSalaries, [], selectedMonth, selectedYear);
   };
 
+  // Group salaries by location for display
+  const salariesByLocation = partTimeSalaries.reduce((acc, salary) => {
+    if (!acc[salary.location]) {
+      acc[salary.location] = [];
+    }
+    acc[salary.location].push(salary);
+    return acc;
+  }, {} as Record<string, PartTimeSalaryDetail[]>);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -138,7 +191,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               onClick={handleExportExcel}
               className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
             >
-              <Download size={16} />
+              <FileSpreadsheet size={16} />
               Export Excel
             </button>
             <button
@@ -193,9 +246,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 onChange={(e) => setNewStaffData({ ...newStaffData, shift: e.target.value as any })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="Morning">Morning</option>
-                <option value="Evening">Evening</option>
-                <option value="Both">Both</option>
+                <option value="Morning">Morning (Half Day)</option>
+                <option value="Evening">Evening (Half Day)</option>
+                <option value="Both">Both (Full Day)</option>
               </select>
             </div>
             <div className="flex items-end gap-2">
@@ -234,6 +287,19 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               </span>
             )}
           </div>
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700">Filter by Location</label>
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value as any)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="All">All Locations</option>
+              <option value="Big Shop">Big Shop</option>
+              <option value="Small Shop">Small Shop</option>
+              <option value="Godown">Godown</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -243,10 +309,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Calendar className="text-purple-600" size={20} />
             Part-Time Staff Attendance - {new Date(selectedDate).toLocaleDateString()}
+            {locationFilter !== 'All' && <span className="text-sm text-gray-500">({locationFilter})</span>}
           </h2>
         </div>
         
-        {todayPartTimeAttendance.length === 0 ? (
+        {filteredTodayAttendance.length === 0 ? (
           <div className="p-8 text-center">
             <Clock className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No part-time staff for today</h3>
@@ -267,7 +334,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {todayPartTimeAttendance.map((record, index) => (
+                {filteredTodayAttendance.map((record, index) => (
                   <tr key={record.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -392,57 +459,82 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           </div>
         </div>
 
-        {/* Salary Table */}
-        {partTimeSalaries.length === 0 ? (
+        {/* Location-wise Salary Display */}
+        {Object.keys(salariesByLocation).length === 0 ? (
           <div className="text-center py-8">
             <DollarSign className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No part-time staff data</h3>
             <p className="text-gray-500">Part-time staff salary data will appear here.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {partTimeSalaries.map((salary, index) => (
-                  <tr key={`${salary.staffName}-${index}`} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {salary.staffName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                        {salary.location}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      {salary.totalDays}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      <div className="space-y-1">
-                        {salary.weeklyBreakdown.map(week => (
-                          <div key={week.week} className="text-xs">
-                            Week {week.week}: {week.days.length} days - ₹{week.weekTotal}
-                          </div>
-                        ))}
+          <div className="space-y-8">
+            {Object.entries(salariesByLocation).map(([location, salaries]) => {
+              const locationTotal = salaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+              const locationDays = salaries.reduce((sum, salary) => sum + salary.totalDays, 0);
+              
+              return (
+                <div key={location} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800">{location}</h3>
+                      <div className="flex gap-6 text-sm">
+                        <div className="text-center">
+                          <p className="text-gray-500">Total Salary</p>
+                          <p className="font-bold text-green-600">₹{locationTotal.toLocaleString()}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-500">Total Days</p>
+                          <p className="font-bold text-blue-600">{locationDays}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-500">Staff Count</p>
+                          <p className="font-bold text-purple-600">{salaries.length}</p>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-green-600">
-                      ₹{salary.totalEarnings.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
+                          <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
+                          <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {salaries.map((salary, index) => (
+                          <tr key={`${salary.staffName}-${index}`} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {salary.staffName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                              {salary.totalDays}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                              <div className="space-y-1">
+                                {salary.weeklyBreakdown.map(week => (
+                                  <div key={week.week} className="text-xs">
+                                    Week {week.week}: {week.days.length} days - ₹{week.weekTotal}
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-green-600">
+                              ₹{salary.totalEarnings.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

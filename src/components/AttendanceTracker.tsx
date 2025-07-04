@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Staff, Attendance, AttendanceFilter } from '../types';
-import { Calendar, Download, Check, X, Filter } from 'lucide-react';
-import { isSunday } from '../utils/salaryCalculations';
-import { exportAttendancePDF } from '../utils/pdfExport';
+import { Calendar, Download, Check, X, Filter, MapPin, Clock } from 'lucide-react';
+import { isSunday, getPartTimeDailySalary } from '../utils/salaryCalculations';
+import { exportAttendancePDF } from '../utils/exportUtils';
 
 interface AttendanceTrackerProps {
   staff: Staff[];
   attendance: Attendance[];
   selectedDate: string;
   onDateChange: (date: string) => void;
-  onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string) => void;
+  onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
   onBulkUpdateAttendance: (date: string, status: 'Present' | 'Absent') => void;
 }
 
@@ -30,12 +30,16 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
     shift: 'All',
     staffType: 'all'
   });
+  const [showHalfDayModal, setShowHalfDayModal] = useState<{staffId: string, staffName: string} | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState<{staffId: string, staffName: string, currentLocation: string} | null>(null);
+  const [selectedShift, setSelectedShift] = useState<'Morning' | 'Evening'>('Morning');
+  const [selectedLocation, setSelectedLocation] = useState<'Big Shop' | 'Small Shop' | 'Godown'>('Big Shop');
 
   const activeStaff = staff.filter(member => member.isActive);
 
   const getAttendanceForDate = (staffId: string, date: string) => {
     const record = attendance.find(a => a.staffId === staffId && a.date === date && !a.isPartTime);
-    return record?.status || 'Absent';
+    return record;
   };
 
   const getStatusColor = (status: string) => {
@@ -77,19 +81,59 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
     }
   };
 
+  const handleHalfDayConfirm = () => {
+    if (showHalfDayModal) {
+      onUpdateAttendance(
+        showHalfDayModal.staffId,
+        selectedDate,
+        'Half Day',
+        false,
+        undefined,
+        selectedShift
+      );
+      setShowHalfDayModal(null);
+    }
+  };
+
+  const handleLocationChange = () => {
+    if (showLocationModal) {
+      const attendanceRecord = getAttendanceForDate(showLocationModal.staffId, selectedDate);
+      onUpdateAttendance(
+        showLocationModal.staffId,
+        selectedDate,
+        attendanceRecord?.status || 'Present',
+        false,
+        undefined,
+        attendanceRecord?.shift,
+        selectedLocation
+      );
+      setShowLocationModal(null);
+    }
+  };
+
   // Filter attendance based on filters
-  const getFilteredAttendance = () => {
-    let filteredAttendance = attendance.filter(record => record.date === selectedDate);
+  const getFilteredStaff = () => {
+    let filteredStaff = activeStaff;
 
     if (filters.staffType === 'full-time') {
-      filteredAttendance = filteredAttendance.filter(record => !record.isPartTime);
+      // Show only full-time staff
+      filteredStaff = activeStaff;
     } else if (filters.staffType === 'part-time') {
-      filteredAttendance = filteredAttendance.filter(record => record.isPartTime);
+      // For part-time, we'll show part-time attendance records instead
+      return [];
     }
+
+    return filteredStaff;
+  };
+
+  const getFilteredPartTimeAttendance = () => {
+    let filteredAttendance = attendance.filter(record => 
+      record.isPartTime && record.date === selectedDate
+    );
 
     if (filters.shift && filters.shift !== 'All') {
       filteredAttendance = filteredAttendance.filter(record => 
-        record.shift === filters.shift || !record.isPartTime
+        record.shift === filters.shift
       );
     }
 
@@ -166,7 +210,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
                   {days.map(day => {
                     const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const status = getAttendanceForDate(member.id, date);
+                    const attendanceRecord = getAttendanceForDate(member.id, date);
+                    const status = attendanceRecord?.status || 'Absent';
                     const isDateSunday = isSunday(date);
                     return (
                       <td key={day} className={`px-2 py-4 text-center ${isDateSunday ? 'bg-red-50' : ''}`}>
@@ -225,35 +270,51 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   }
 
   const isSelectedDateSunday = isSunday(selectedDate);
-  const filteredAttendance = getFilteredAttendance();
+  const filteredStaff = getFilteredStaff();
+  const filteredPartTimeAttendance = getFilteredPartTimeAttendance();
 
-  // Combine full-time and part-time staff for display
-  const combinedAttendanceData = [
-    // Full-time staff
-    ...activeStaff.map((member, index) => ({
-      id: member.id,
-      serialNo: index + 1,
-      name: member.name,
-      location: member.location,
-      type: member.type,
-      shift: '-',
-      status: getAttendanceForDate(member.id, selectedDate),
-      isPartTime: false
-    })),
-    // Part-time staff
-    ...attendance
-      .filter(record => record.isPartTime && record.date === selectedDate)
-      .map((record, index) => ({
+  // Combine full-time and part-time staff for display based on filter
+  const combinedAttendanceData = [];
+
+  if (filters.staffType === 'all' || filters.staffType === 'full-time') {
+    // Add full-time staff
+    filteredStaff.forEach((member, index) => {
+      const attendanceRecord = getAttendanceForDate(member.id, selectedDate);
+      const displayLocation = attendanceRecord?.location || member.location;
+      const displayName = attendanceRecord?.shift ? `${member.name} (${attendanceRecord.shift})` : member.name;
+      
+      combinedAttendanceData.push({
+        id: member.id,
+        serialNo: index + 1,
+        name: displayName,
+        location: displayLocation,
+        type: member.type,
+        shift: attendanceRecord?.shift || '-',
+        status: attendanceRecord?.status || 'Absent',
+        isPartTime: false,
+        originalName: member.name,
+        originalLocation: member.location
+      });
+    });
+  }
+
+  if (filters.staffType === 'all' || filters.staffType === 'part-time') {
+    // Add part-time staff
+    filteredPartTimeAttendance.forEach((record, index) => {
+      const baseIndex = filters.staffType === 'part-time' ? 0 : filteredStaff.length;
+      combinedAttendanceData.push({
         id: record.id,
-        serialNo: activeStaff.length + index + 1,
+        serialNo: baseIndex + index + 1,
         name: record.staffName || 'Unknown',
         location: record.location || 'Unknown',
         type: 'part-time',
         shift: record.shift || '-',
         status: record.status,
-        isPartTime: true
-      }))
-  ];
+        isPartTime: true,
+        salary: record.salary || getPartTimeDailySalary(record.date)
+      });
+    });
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -357,6 +418,9 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                {filters.staffType === 'part-time' && (
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
+                )}
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -371,9 +435,14 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(data.location)}`}>
-                      {data.location}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(data.location)}`}>
+                        {data.location}
+                      </span>
+                      {!data.isPartTime && data.location !== data.originalLocation && (
+                        <span className="text-xs text-orange-600">(temp)</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -399,6 +468,11 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                       )}
                     </span>
                   </td>
+                  {filters.staffType === 'part-time' && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                      {data.isPartTime ? `₹${data.salary}` : '-'}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {!data.isPartTime && (
                       <div className="flex space-x-2">
@@ -413,7 +487,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                           Present
                         </button>
                         <button
-                          onClick={() => onUpdateAttendance(data.id, selectedDate, 'Half Day')}
+                          onClick={() => setShowHalfDayModal({staffId: data.id, staffName: data.originalName || data.name})}
                           className={`px-3 py-1 text-xs font-medium rounded ${
                             data.status === 'Half Day' 
                               ? 'bg-yellow-600 text-white' 
@@ -432,6 +506,17 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                         >
                           Absent
                         </button>
+                        <button
+                          onClick={() => setShowLocationModal({
+                            staffId: data.id, 
+                            staffName: data.originalName || data.name,
+                            currentLocation: data.originalLocation || data.location
+                          })}
+                          className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                          title="Change location for today"
+                        >
+                          <MapPin size={12} />
+                        </button>
                       </div>
                     )}
                   </td>
@@ -441,6 +526,117 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Half Day Modal */}
+      {showHalfDayModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Clock className="text-yellow-600" size={20} />
+              Half Day - {showHalfDayModal.staffName}
+            </h3>
+            <p className="text-gray-600 mb-4">Select which half of the day:</p>
+            <div className="space-y-3 mb-6">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="Morning"
+                  checked={selectedShift === 'Morning'}
+                  onChange={(e) => setSelectedShift(e.target.value as 'Morning')}
+                  className="mr-2"
+                />
+                Morning
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="Evening"
+                  checked={selectedShift === 'Evening'}
+                  onChange={(e) => setSelectedShift(e.target.value as 'Evening')}
+                  className="mr-2"
+                />
+                Evening
+              </label>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleHalfDayConfirm}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+              >
+                Confirm Half Day
+              </button>
+              <button
+                onClick={() => setShowHalfDayModal(null)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Change Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <MapPin className="text-blue-600" size={20} />
+              Change Location - {showLocationModal.staffName}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Current: {showLocationModal.currentLocation}<br/>
+              Select temporary location for {new Date(selectedDate).toLocaleDateString()}:
+            </p>
+            <div className="space-y-3 mb-6">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="Big Shop"
+                  checked={selectedLocation === 'Big Shop'}
+                  onChange={(e) => setSelectedLocation(e.target.value as 'Big Shop')}
+                  className="mr-2"
+                />
+                Big Shop
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="Small Shop"
+                  checked={selectedLocation === 'Small Shop'}
+                  onChange={(e) => setSelectedLocation(e.target.value as 'Small Shop')}
+                  className="mr-2"
+                />
+                Small Shop
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="Godown"
+                  checked={selectedLocation === 'Godown'}
+                  onChange={(e) => setSelectedLocation(e.target.value as 'Godown')}
+                  className="mr-2"
+                />
+                Godown
+              </label>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleLocationChange}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Change Location
+              </button>
+              <button
+                onClick={() => setShowLocationModal(null)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
