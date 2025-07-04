@@ -25,17 +25,14 @@ export const advanceService = {
       .eq('staff_id', staffId)
       .eq('month', month)
       .eq('year', year)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // No record found
-      }
       console.error('Error fetching advance:', error);
       throw error;
     }
 
-    return this.mapFromDatabase(data);
+    return data ? this.mapFromDatabase(data) : null;
   },
 
   async getPreviousMonthAdvance(staffId: string, currentMonth: number, currentYear: number): Promise<number> {
