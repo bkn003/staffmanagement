@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Staff, OldStaffRecord } from '../types';
-import { Users, Plus, Edit2, Trash2, Download, Archive } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar } from 'lucide-react';
+import { calculateExperience } from '../utils/salaryCalculations';
 
 interface StaffManagementProps {
   staff: Staff[];
@@ -23,8 +24,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     location: 'Big Shop' as Staff['location'],
-    type: 'full-time' as Staff['type'],
-    experience: '',
     basicSalary: 15000,
     incentive: 10000,
     hra: 0,
@@ -37,8 +36,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
     setFormData({
       name: '',
       location: 'Big Shop',
-      type: 'full-time',
-      experience: '',
       basicSalary: 15000,
       incentive: 10000,
       hra: 0,
@@ -49,12 +46,24 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const totalSalary = formData.basicSalary + formData.incentive + formData.hra;
+    const experience = calculateExperience(formData.joinedDate);
     
     if (editingStaff) {
-      onUpdateStaff(editingStaff.id, { ...formData, totalSalary });
+      onUpdateStaff(editingStaff.id, { 
+        ...formData, 
+        totalSalary,
+        experience,
+        type: 'full-time' // All staff are full-time by default
+      });
       setEditingStaff(null);
     } else {
-      onAddStaff({ ...formData, totalSalary, isActive: true });
+      onAddStaff({ 
+        ...formData, 
+        totalSalary, 
+        experience,
+        type: 'full-time', // All staff are full-time by default
+        isActive: true 
+      });
       setShowAddForm(false);
     }
     resetForm();
@@ -65,8 +74,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
     setFormData({
       name: staffMember.name,
       location: staffMember.location,
-      type: staffMember.type,
-      experience: staffMember.experience,
       basicSalary: staffMember.basicSalary,
       incentive: staffMember.incentive,
       hra: staffMember.hra,
@@ -100,10 +107,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
     }
   };
 
-  const getTypeColor = (type: string) => {
-    return type === 'full-time' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-  };
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -113,10 +116,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
           Staff Management
         </h1>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-            <Download size={16} />
-            Export PDF
-          </button>
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -157,23 +156,11 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as Staff['type'] })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="full-time">Full-time</option>
-                <option value="part-time">Part-time</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Joined Date</label>
               <input
-                type="text"
-                value={formData.experience}
-                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                placeholder="e.g., 2y 3m"
+                type="date"
+                value={formData.joinedDate}
+                onChange={(e) => setFormData({ ...formData, joinedDate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
@@ -204,17 +191,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 type="number"
                 value={formData.hra}
                 onChange={(e) => setFormData({ ...formData, hra: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Joined Date</label>
-              <input
-                type="text"
-                value={formData.joinedDate}
-                onChange={(e) => setFormData({ ...formData, joinedDate: e.target.value })}
-                placeholder="MM/DD/YYYY"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
@@ -298,7 +274,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
@@ -314,7 +289,10 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                      <div className="text-sm text-gray-500">Joined: {member.joinedDate}</div>
+                      <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <Calendar size={12} />
+                        Joined: {new Date(member.joinedDate).toLocaleDateString()}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -322,12 +300,9 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                       {member.location}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(member.type)}`}>
-                      {member.type}
-                    </span>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                    {calculateExperience(member.joinedDate)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">{member.experience}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.basicSalary.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.incentive.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.hra.toLocaleString()}</td>

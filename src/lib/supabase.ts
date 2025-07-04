@@ -37,6 +37,8 @@ export interface DatabaseAttendance {
   staff_name?: string;
   shift?: 'Morning' | 'Evening' | 'Both';
   location?: string;
+  salary?: number;
+  salary_override?: boolean;
   created_at: string;
 }
 

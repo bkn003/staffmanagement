@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Staff, Attendance, SalaryDetail, AdvanceDeduction, PartTimeSalaryDetail } from '../types';
-import { DollarSign, Download, Users, Calendar, TrendingUp, Edit2, Save, X } from 'lucide-react';
+import { DollarSign, Download, Users, Calendar, TrendingUp, Edit2, Save, X, FileSpreadsheet } from 'lucide-react';
 import { calculateAttendanceMetrics, calculateSalary, calculatePartTimeSalary, roundToNearest10 } from '../utils/salaryCalculations';
-import { exportSalaryPDF } from '../utils/pdfExport';
+import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 
 interface SalaryManagementProps {
   staff: Staff[];
@@ -21,6 +21,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editMode, setEditMode] = useState(false);
   const [tempAdvances, setTempAdvances] = useState<{[key: string]: Partial<AdvanceDeduction>}>({});
+  const [saving, setSaving] = useState(false);
 
   const activeStaff = staff.filter(member => member.isActive);
 
@@ -83,8 +84,22 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
         adv.year === selectedYear
       );
       
+      // Get previous month's advance for old advance
+      let prevMonth = selectedMonth - 1;
+      let prevYear = selectedYear;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear = selectedYear - 1;
+      }
+      
+      const previousAdvance = advances.find(adv => 
+        adv.staffId === member.id && 
+        adv.month === prevMonth && 
+        adv.year === prevYear
+      );
+      
       initialTempAdvances[member.id] = {
-        oldAdvance: currentAdvances?.oldAdvance || 0,
+        oldAdvance: previousAdvance?.newAdvance || 0,
         currentAdvance: currentAdvances?.currentAdvance || 0,
         deduction: currentAdvances?.deduction || 0
       };
@@ -94,27 +109,42 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
     setEditMode(true);
   };
 
-  const handleSaveAll = () => {
-    Object.keys(tempAdvances).forEach(staffId => {
-      const temp = tempAdvances[staffId];
-      if (temp) {
-        const newAdvance = roundToNearest10((temp.oldAdvance || 0) + (temp.currentAdvance || 0) - (temp.deduction || 0));
-        
-        onUpdateAdvances(staffId, selectedMonth, selectedYear, {
-          ...temp,
-          newAdvance,
-          updatedAt: new Date().toISOString()
-        });
-      }
-    });
-    
-    setEditMode(false);
-    setTempAdvances({});
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      const savePromises = Object.keys(tempAdvances).map(staffId => {
+        const temp = tempAdvances[staffId];
+        if (temp) {
+          const newAdvance = roundToNearest10((temp.oldAdvance || 0) + (temp.currentAdvance || 0) - (temp.deduction || 0));
+          
+          return onUpdateAdvances(staffId, selectedMonth, selectedYear, {
+            ...temp,
+            newAdvance,
+            updatedAt: new Date().toISOString()
+          });
+        }
+        return Promise.resolve();
+      });
+      
+      await Promise.all(savePromises);
+      
+      setEditMode(false);
+      setTempAdvances({});
+    } catch (error) {
+      console.error('Error saving advances:', error);
+      alert('Error saving advances. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancelEdit = () => {
     setEditMode(false);
     setTempAdvances({});
+  };
+
+  const handleExportExcel = () => {
+    exportSalaryToExcel(salaryDetails, partTimeSalaries, staff, selectedMonth, selectedYear);
   };
 
   const handleExportPDF = () => {
@@ -129,6 +159,20 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
     );
   };
 
+  const updateTempAdvance = (staffId: string, field: string, value: number) => {
+    const current = tempAdvances[staffId] || {};
+    const updated = { ...current, [field]: value };
+    
+    // Auto-calculate new advance
+    const newAdvance = roundToNearest10((updated.oldAdvance || 0) + (updated.currentAdvance || 0) - (updated.deduction || 0));
+    updated.newAdvance = newAdvance;
+    
+    setTempAdvances({
+      ...tempAdvances,
+      [staffId]: updated
+    });
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -137,13 +181,22 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
           <DollarSign className="text-green-600" size={32} />
           Enhanced Salary Management
         </h1>
-        <button 
-          onClick={handleExportPDF}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Download size={16} />
-          Download PDF
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FileSpreadsheet size={16} />
+            Export Excel
+          </button>
+          <button 
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Download size={16} />
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Month/Year Selection */}
@@ -268,14 +321,16 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                 <>
                   <button
                     onClick={handleSaveAll}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
                   >
                     <Save size={16} />
-                    Save All
+                    {saving ? 'Saving...' : 'Save All'}
                   </button>
                   <button
                     onClick={handleCancelEdit}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400"
                   >
                     <X size={16} />
                     Cancel
@@ -356,11 +411,9 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                         <input
                           type="number"
                           value={tempData?.oldAdvance || 0}
-                          onChange={(e) => setTempAdvances({
-                            ...tempAdvances,
-                            [detail.staffId]: { ...tempData, oldAdvance: Number(e.target.value) }
-                          })}
+                          onChange={(e) => updateTempAdvance(detail.staffId, 'oldAdvance', Number(e.target.value))}
                           className="w-20 px-2 py-1 text-xs border rounded"
+                          disabled
                         />
                       ) : (
                         <span className="text-blue-600">₹{detail.oldAdv}</span>
@@ -371,10 +424,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                         <input
                           type="number"
                           value={tempData?.currentAdvance || 0}
-                          onChange={(e) => setTempAdvances({
-                            ...tempAdvances,
-                            [detail.staffId]: { ...tempData, currentAdvance: Number(e.target.value) }
-                          })}
+                          onChange={(e) => updateTempAdvance(detail.staffId, 'currentAdvance', Number(e.target.value))}
                           className="w-20 px-2 py-1 text-xs border rounded"
                         />
                       ) : (
@@ -386,10 +436,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                         <input
                           type="number"
                           value={tempData?.deduction || 0}
-                          onChange={(e) => setTempAdvances({
-                            ...tempAdvances,
-                            [detail.staffId]: { ...tempData, deduction: Number(e.target.value) }
-                          })}
+                          onChange={(e) => updateTempAdvance(detail.staffId, 'deduction', Number(e.target.value))}
                           className="w-20 px-2 py-1 text-xs border rounded"
                         />
                       ) : (
@@ -410,7 +457,9 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                     <td className="px-4 py-3 whitespace-nowrap text-center font-bold text-green-700">
                       ₹{detail.netSalary}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-blue-600">₹{detail.newAdv}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-blue-600">
+                      ₹{editMode ? (tempData?.newAdvance || 0) : detail.newAdv}
+                    </td>
                   </tr>
                 );
               })}
@@ -427,7 +476,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
               Part-Time Staff Earnings - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Rate: ₹800/day (Both shifts), ₹400/shift (Single shift)
+              Rate: ₹350/day (Mon-Sat), ₹400/day (Sunday)
             </p>
           </div>
           
@@ -439,9 +488,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                   <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shifts</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Day</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Shift</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
                   <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
                 </tr>
               </thead>
@@ -461,13 +508,13 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                       {salary.totalDays}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      {salary.totalShifts}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      ₹{salary.ratePerDay}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      ₹{salary.ratePerShift}
+                      <div className="space-y-1">
+                        {salary.weeklyBreakdown.map(week => (
+                          <div key={week.week} className="text-xs">
+                            Week {week.week}: {week.days.length} days - ₹{week.weekTotal}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-purple-600">
                       ₹{salary.totalEarnings.toLocaleString()}

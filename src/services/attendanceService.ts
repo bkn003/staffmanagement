@@ -82,7 +82,9 @@ export const attendanceService = {
       isPartTime: dbAttendance.is_part_time,
       staffName: dbAttendance.staff_name,
       shift: dbAttendance.shift,
-      location: dbAttendance.location
+      location: dbAttendance.location,
+      salary: dbAttendance.salary,
+      salaryOverride: dbAttendance.salary_override
     };
   },
 
@@ -96,7 +98,9 @@ export const attendanceService = {
       is_part_time: attendance.isPartTime || false,
       staff_name: attendance.staffName,
       shift: attendance.shift,
-      location: attendance.location
+      location: attendance.location,
+      salary: attendance.salary,
+      salary_override: attendance.salaryOverride
     };
   }
 };

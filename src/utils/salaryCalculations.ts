@@ -1,4 +1,4 @@
-import { Staff, Attendance, SalaryDetail, AdvanceDeduction, PartTimeStaff, PartTimeSalaryDetail } from '../types';
+import { Staff, Attendance, SalaryDetail, AdvanceDeduction, PartTimeStaff, PartTimeSalaryDetail, WeeklySalary, DailySalary } from '../types';
 
 // Round to nearest 10
 export const roundToNearest10 = (value: number): number => {
@@ -14,6 +14,32 @@ export const isSunday = (dateString: string): boolean => {
 // Get days in month
 export const getDaysInMonth = (year: number, month: number): number => {
   return new Date(year, month + 1, 0).getDate();
+};
+
+// Calculate experience from joined date
+export const calculateExperience = (joinedDate: string): string => {
+  const joined = new Date(joinedDate);
+  const now = new Date();
+  
+  let years = now.getFullYear() - joined.getFullYear();
+  let months = now.getMonth() - joined.getMonth();
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  return `${years}y ${months}m`;
+};
+
+// Get part-time salary based on day and override
+export const getPartTimeDailySalary = (date: string, isOverride: boolean = false, overrideAmount?: number): number => {
+  if (isOverride && overrideAmount !== undefined) {
+    return overrideAmount;
+  }
+  
+  const isSundayDate = isSunday(date);
+  return isSundayDate ? 400 : 350;
 };
 
 // Calculate attendance values
@@ -58,15 +84,13 @@ export const calculateAttendanceMetrics = (
   };
 };
 
-// Calculate part-time salary
+// Calculate part-time salary with weekly breakdown
 export const calculatePartTimeSalary = (
   staffName: string,
   location: string,
   attendance: Attendance[],
   year: number,
-  month: number,
-  ratePerDay: number = 800,
-  ratePerShift: number = 400
+  month: number
 ): PartTimeSalaryDetail => {
   const monthlyAttendance = attendance.filter(record => {
     const recordDate = new Date(record.date);
@@ -77,30 +101,58 @@ export const calculatePartTimeSalary = (
            record.status === 'Present';
   });
 
-  let totalDays = 0;
-  let totalShifts = 0;
-
+  // Group by weeks
+  const weeks: { [key: number]: Attendance[] } = {};
   monthlyAttendance.forEach(record => {
-    if (record.shift === 'Both') {
-      totalDays += 1;
-      totalShifts += 2;
-    } else if (record.shift === 'Morning' || record.shift === 'Evening') {
-      totalShifts += 1;
-    }
+    const date = new Date(record.date);
+    const weekNumber = Math.ceil(date.getDate() / 7);
+    if (!weeks[weekNumber]) weeks[weekNumber] = [];
+    weeks[weekNumber].push(record);
   });
 
-  const totalEarnings = roundToNearest10((totalDays * ratePerDay) + (totalShifts * ratePerShift));
+  const weeklyBreakdown: WeeklySalary[] = [];
+  let totalEarnings = 0;
+  let totalDays = 0;
+
+  Object.keys(weeks).forEach(weekKey => {
+    const weekNum = parseInt(weekKey);
+    const weekAttendance = weeks[weekNum];
+    
+    const dailySalaries: DailySalary[] = weekAttendance.map(record => {
+      const salary = record.salary || getPartTimeDailySalary(record.date, record.salaryOverride, record.salary);
+      totalEarnings += salary;
+      totalDays++;
+      
+      return {
+        date: record.date,
+        dayOfWeek: new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' }),
+        isPresent: true,
+        isSunday: isSunday(record.date),
+        salary,
+        isOverride: record.salaryOverride || false
+      };
+    });
+
+    const weekTotal = dailySalaries.reduce((sum, day) => sum + day.salary, 0);
+    
+    weeklyBreakdown.push({
+      week: weekNum,
+      days: dailySalaries,
+      weekTotal
+    });
+  });
 
   return {
     staffName,
     location,
     totalDays,
-    totalShifts,
-    ratePerDay,
-    ratePerShift,
+    totalShifts: 0, // Not used in new calculation
+    ratePerDay: 350, // Base rate
+    ratePerShift: 0, // Not used
     totalEarnings,
     month,
-    year
+    year,
+    weeklyBreakdown
   };
 };
 

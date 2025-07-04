@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Attendance, PartTimeSalaryDetail } from '../types';
-import { Clock, Plus, Download, Calendar, DollarSign } from 'lucide-react';
-import { calculatePartTimeSalary } from '../utils/salaryCalculations';
-import { exportSalaryPDF } from '../utils/pdfExport';
+import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X } from 'lucide-react';
+import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
+import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 
 interface PartTimeStaffProps {
   attendance: Attendance[];
-  onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string) => void;
+  onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
 }
 
 const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
@@ -19,6 +19,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
+  const [editSalary, setEditSalary] = useState<number>(0);
   const [newStaffData, setNewStaffData] = useState({
     name: '',
     location: 'Big Shop' as 'Big Shop' | 'Small Shop' | 'Godown',
@@ -72,6 +74,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const handleAddPartTimeAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const staffId = `pt_${Date.now()}`;
+    const defaultSalary = getPartTimeDailySalary(selectedDate);
+    
     onUpdateAttendance(
       staffId,
       selectedDate,
@@ -79,10 +83,41 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       true,
       newStaffData.name,
       newStaffData.shift,
-      newStaffData.location
+      newStaffData.location,
+      defaultSalary,
+      false
     );
     setNewStaffData({ name: '', location: 'Big Shop', shift: 'Morning' });
     setShowAddForm(false);
+  };
+
+  const handleEditSalary = (attendanceId: string, currentSalary: number) => {
+    setEditingAttendance(attendanceId);
+    setEditSalary(currentSalary);
+  };
+
+  const handleSaveSalary = (attendanceRecord: Attendance) => {
+    onUpdateAttendance(
+      attendanceRecord.staffId,
+      attendanceRecord.date,
+      attendanceRecord.status,
+      true,
+      attendanceRecord.staffName,
+      attendanceRecord.shift,
+      attendanceRecord.location,
+      editSalary,
+      true
+    );
+    setEditingAttendance(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAttendance(null);
+    setEditSalary(0);
+  };
+
+  const handleExportExcel = () => {
+    exportSalaryToExcel([], partTimeSalaries, [], selectedMonth, selectedYear);
   };
 
   const handleExportPDF = () => {
@@ -99,6 +134,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             <h1 className="text-3xl font-bold">Part-Time Staff Management</h1>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+            >
+              <Download size={16} />
+              Export Excel
+            </button>
             <button
               onClick={handleExportPDF}
               className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
@@ -186,6 +228,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               onChange={(e) => setSelectedDate(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
+            {isSunday(selectedDate) && (
+              <span className="px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full">
+                Sunday - ₹400 rate
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -215,6 +262,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -238,6 +287,51 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                         {record.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {editingAttendance === record.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={editSalary}
+                            onChange={(e) => setEditSalary(Number(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+                            min="0"
+                          />
+                          <button
+                            onClick={() => handleSaveSalary(record)}
+                            className="text-green-600 hover:text-green-800 p-1"
+                          >
+                            <Save size={14} />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="text-red-600 hover:text-red-800 p-1"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold ${record.salaryOverride ? 'text-orange-600' : 'text-green-600'}`}>
+                            ₹{record.salary || getPartTimeDailySalary(record.date)}
+                          </span>
+                          {record.salaryOverride && (
+                            <span className="text-xs text-orange-600">(edited)</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {editingAttendance !== record.id && (
+                        <button
+                          onClick={() => handleEditSalary(record.id, record.salary || getPartTimeDailySalary(record.date))}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Edit salary"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -293,6 +387,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             <div className="text-right">
               <p className="text-green-100 mb-1">Total Staff</p>
               <p className="text-2xl font-bold">{partTimeSalaries.length}</p>
+              <p className="text-green-100 text-sm">Mon-Sat: ₹350 | Sun: ₹400</p>
             </div>
           </div>
         </div>
@@ -313,9 +408,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                   <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shifts</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Day</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rate/Shift</th>
+                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
                   <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
                 </tr>
               </thead>
@@ -335,13 +428,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                       {salary.totalDays}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      {salary.totalShifts}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      ₹{salary.ratePerDay}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      ₹{salary.ratePerShift}
+                      <div className="space-y-1">
+                        {salary.weeklyBreakdown.map(week => (
+                          <div key={week.week} className="text-xs">
+                            Week {week.week}: {week.days.length} days - ₹{week.weekTotal}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-green-600">
                       ₹{salary.totalEarnings.toLocaleString()}

@@ -31,6 +31,9 @@ export interface Attendance {
   shift?: 'Morning' | 'Evening' | 'Both'; // For part-time staff
   isPartTime?: boolean;
   staffName?: string; // For part-time staff (not stored permanently)
+  location?: string;
+  salary?: number; // For part-time staff daily salary
+  salaryOverride?: boolean; // If salary was manually edited
 }
 
 export interface SalaryDetail {
@@ -64,6 +67,22 @@ export interface PartTimeSalaryDetail {
   totalEarnings: number;
   month: number;
   year: number;
+  weeklyBreakdown: WeeklySalary[];
+}
+
+export interface WeeklySalary {
+  week: number;
+  days: DailySalary[];
+  weekTotal: number;
+}
+
+export interface DailySalary {
+  date: string;
+  dayOfWeek: string;
+  isPresent: boolean;
+  isSunday: boolean;
+  salary: number;
+  isOverride: boolean;
 }
 
 export interface OldStaffRecord {
