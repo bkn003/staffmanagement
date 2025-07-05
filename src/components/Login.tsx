@@ -99,16 +99,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
-            <div className="text-xs text-gray-600 space-y-1">
-              <div><strong>Admin:</strong> staff@admin.com / Staffans7369</div>
-              <div><strong>Big Shop Manager:</strong> manager@bigshop.com / 123456</div>
-              <div><strong>Small Shop Manager:</strong> manager@smallshop.com / 123456</div>
-              <div><strong>Godown Manager:</strong> manager@godown.com / 123456</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
