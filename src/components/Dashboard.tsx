@@ -65,18 +65,18 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+          <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
             <Calendar className="text-blue-600" size={32} />
             Dashboard
           </h1>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Today</p>
-          <p className="text-lg font-semibold text-gray-800">
+          <p className="text-base md:text-lg font-semibold text-gray-800">
             {new Date().toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -88,76 +88,76 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+      <div className="dashboard-stats stats-grid grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6">
+        <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Active Staff</p>
-              <p className="text-3xl font-bold text-gray-800">{activeStaff.length}</p>
+              <p className="text-2xl md:text-3xl font-bold text-gray-800">{activeStaff.length}</p>
               <p className="text-xs text-gray-500">{fullTimeStaff.length} FT, {partTimeStaff.length} PT</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="text-blue-600" size={24} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Users className="text-blue-600" size={20} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Present Today</p>
-              <p className="text-3xl font-bold text-green-600">{totalPresentValue}</p>
+              <p className="text-2xl md:text-3xl font-bold text-green-600">{totalPresentValue}</p>
               <p className="text-xs text-gray-500">{presentToday} Full, {halfDayToday} Half</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Clock className="text-green-600" size={24} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Clock className="text-green-600" size={20} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Half Day Today</p>
-              <p className="text-3xl font-bold text-yellow-600">{halfDayToday}</p>
+              <p className="text-2xl md:text-3xl font-bold text-yellow-600">{halfDayToday}</p>
               <p className="text-xs text-gray-500">Partial attendance</p>
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-yellow-600" size={24} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="text-yellow-600" size={20} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Absent Today</p>
-              <p className="text-3xl font-bold text-red-600">{absentToday}</p>
+              <p className="text-2xl md:text-3xl font-bold text-red-600">{absentToday}</p>
               <p className="text-xs text-gray-500">Not present</p>
             </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <Calendar className="text-red-600" size={24} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <Calendar className="text-red-600" size={20} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Part-Time Today</p>
-              <p className="text-3xl font-bold text-purple-600">{partTimeCount}</p>
+              <p className="text-2xl md:text-3xl font-bold text-purple-600">{partTimeCount}</p>
               <p className="text-xs text-gray-500">Working today</p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Clock className="text-purple-600" size={24} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Clock className="text-purple-600" size={20} />
             </div>
           </div>
         </div>
       </div>
 
       {/* Location-based Attendance */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
           <MapPin className="text-blue-600" size={20} />
           Today's Attendance by Location (Including Part-Time & Shifts)
         </h2>
@@ -193,35 +193,35 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
 
             return (
               <div key={location.name} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
-                <h3 className="text-lg font-semibold text-blue-600 mb-4 text-center">
+                <h3 className="text-base md:text-lg font-semibold text-blue-600 mb-4 text-center">
                   {location.name} - Total Present Value: {locationTotalPresent}
                   {locationPartTime.length > 0 && ` + ${locationPartTime.length} Part-Time`}
                 </h3>
                 
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-green-600 mb-1">Present: {locationFullTimePresent.length}</p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-green-50 p-3 md:p-4 rounded-lg">
+                    <p className="text-base md:text-lg font-bold text-green-600 mb-1">Present: {locationFullTimePresent.length}</p>
                     <p className="text-sm text-gray-600">
                       {locationFullTimePresent.length > 0 ? locationFullTimePresent.join(', ') : 'None'}
                     </p>
                   </div>
                   
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-yellow-600 mb-1">Half-day: {locationFullTimeHalfDay.length}</p>
+                  <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
+                    <p className="text-base md:text-lg font-bold text-yellow-600 mb-1">Half-day: {locationFullTimeHalfDay.length}</p>
                     <p className="text-sm text-gray-600">
                       {locationFullTimeHalfDay.length > 0 ? locationFullTimeHalfDay.join(', ') : 'None'}
                     </p>
                   </div>
                   
-                  <div className="bg-red-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-red-600 mb-1">Absent: {locationFullTimeAbsent.length}</p>
+                  <div className="bg-red-50 p-3 md:p-4 rounded-lg">
+                    <p className="text-base md:text-lg font-bold text-red-600 mb-1">Absent: {locationFullTimeAbsent.length}</p>
                     <p className="text-sm text-gray-600">
                       {locationFullTimeAbsent.length > 0 ? locationFullTimeAbsent.join(', ') : 'None'}
                     </p>
                   </div>
 
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-purple-600 mb-1">Part-Time: {locationPartTime.length}</p>
+                  <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
+                    <p className="text-base md:text-lg font-bold text-purple-600 mb-1">Part-Time: {locationPartTime.length}</p>
                     <p className="text-sm text-gray-600">
                       {locationPartTime.length > 0 
                         ? locationPartTime.map(pt => formatStaffName(pt.staffId, true, pt.staffName, pt.shift)).join(', ')

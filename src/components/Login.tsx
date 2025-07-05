@@ -44,12 +44,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="text-white" size={32} />
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+          <div className="text-center mb-6 md:mb-8">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="text-white" size={24} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">Staff Management System</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">Staff Management System</h1>
             <p className="text-gray-600 mt-2">Sign in to your account</p>
           </div>
 

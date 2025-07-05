@@ -165,13 +165,13 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
             <Calendar className="text-blue-600" size={20} />
             Monthly Attendance View
           </h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <select
               value={monthlyDate.month}
               onChange={(e) => setMonthlyDate({ ...monthlyDate, month: Number(e.target.value) })}
@@ -197,17 +197,17 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="table-container overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-2 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-2 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 {days.map(day => {
                   const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isDateSunday = isSunday(date);
                   return (
-                    <th key={day} className={`px-2 py-3 text-center text-xs font-medium uppercase tracking-wider ${
+                    <th key={day} className={`px-1 md:px-2 py-3 text-center text-xs font-medium uppercase tracking-wider ${
                       isDateSunday ? 'bg-red-50 text-red-600' : 'text-gray-500'
                     }`}>
                       {day}
@@ -220,16 +220,16 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {activeStaff.map((member, index) => (
                 <tr key={member.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
+                  <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                  <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
                   {days.map(day => {
                     const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const attendanceRecord = getAttendanceForDate(member.id, date);
                     const status = attendanceRecord?.status || 'Absent';
                     const isDateSunday = isSunday(date);
                     return (
-                      <td key={day} className={`px-2 py-4 text-center ${isDateSunday ? 'bg-red-50' : ''}`}>
-                        <span className={`inline-block w-6 h-6 rounded text-xs font-semibold leading-6 ${
+                      <td key={day} className={`px-1 md:px-2 py-4 text-center ${isDateSunday ? 'bg-red-50' : ''}`}>
+                        <span className={`inline-block w-5 h-5 md:w-6 md:h-6 rounded text-xs font-semibold leading-5 md:leading-6 ${
                           status === 'Present' ? 'bg-green-500 text-white' :
                           status === 'Half Day' ? 'bg-yellow-500 text-white' :
                           status === 'Absent' ? (isDateSunday ? 'bg-red-700 text-white' : 'bg-red-500 text-white') : 'bg-gray-200 text-gray-500'
@@ -245,7 +245,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
           </table>
         </div>
         
-        <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
+        <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 bg-green-500 rounded"></span>
             <span>Present (P)</span>
@@ -269,7 +269,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
 
   if (view === 'monthly') {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setView('daily')}
@@ -331,29 +331,29 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 md:p-6 text-white">
+        <div className="page-header flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Calendar size={32} />
-            <h1 className="text-3xl font-bold">Attendance Tracker</h1>
+            <Calendar size={24} className="md:w-8 md:h-8" />
+            <h1 className="page-title text-xl md:text-3xl font-bold">Attendance Tracker</h1>
           </div>
-          <div className="flex gap-3">
+          <div className="header-actions flex gap-3">
             {userRole === 'admin' && (
               <>
                 <button
                   onClick={() => setView('monthly')}
-                  className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                  className="mobile-full-button px-3 md:px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"
                 >
                   Monthly View
                 </button>
                 <button 
                   onClick={handleExportPDF}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                  className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"
                 >
                   <Download size={16} />
-                  Export PDF
+                  <span className="hidden sm:inline">Export PDF</span>
                 </button>
               </>
             )}
@@ -362,9 +362,9 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <label className="text-sm font-medium text-gray-700">Select Date</label>
             <input
               type="date"
@@ -384,17 +384,17 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             )}
           </div>
           {userRole === 'admin' && (
-            <div className="flex gap-3">
+            <div className="header-actions flex gap-3">
               <button
                 onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
               >
                 <Check size={16} />
                 All Present
               </button>
               <button
                 onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
               >
                 <X size={16} />
                 All Absent
@@ -404,62 +404,64 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-gray-500" />
             <span className="text-sm font-medium text-gray-700">Filters:</span>
           </div>
-          <select
-            value={filters.staffType}
-            onChange={(e) => setFilters({ ...filters, staffType: e.target.value as any })}
-            className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Staff</option>
-            <option value="full-time">Full-Time Only</option>
-            <option value="part-time">Part-Time Only</option>
-          </select>
-          <select
-            value={filters.shift}
-            onChange={(e) => setFilters({ ...filters, shift: e.target.value as any })}
-            className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="All">All Shifts</option>
-            <option value="Morning">Morning</option>
-            <option value="Evening">Evening</option>
-            <option value="Both">Both</option>
-          </select>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <select
+              value={filters.staffType}
+              onChange={(e) => setFilters({ ...filters, staffType: e.target.value as any })}
+              className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Staff</option>
+              <option value="full-time">Full-Time Only</option>
+              <option value="part-time">Part-Time Only</option>
+            </select>
+            <select
+              value={filters.shift}
+              onChange={(e) => setFilters({ ...filters, shift: e.target.value as any })}
+              className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="All">All Shifts</option>
+              <option value="Morning">Morning</option>
+              <option value="Evening">Evening</option>
+              <option value="Both">Both</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Attendance Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="table-container overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 {filters.staffType === 'part-time' && (
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
+                  <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
                 )}
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {combinedAttendanceData.map((data) => (
                 <tr key={data.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{data.serialNo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{data.serialNo}</td>
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{data.name}</div>
                       <div className="text-sm text-gray-500">{data.type}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(data.location)}`}>
                         {data.location}
@@ -469,14 +471,14 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       data.type === 'full-time' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
                     }`}>
                       {data.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                     {data.shift !== '-' ? (
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getShiftColor(data.shift)}`}>
                         {data.shift}
@@ -485,7 +487,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(data.status)}`}>
                       {data.status}
                       {data.status === 'Absent' && isSelectedDateSunday && !data.isPartTime && (
@@ -494,16 +496,16 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                     </span>
                   </td>
                   {filters.staffType === 'part-time' && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
                       {data.isPartTime ? `₹${data.salary}` : '-'}
                     </td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {!data.isPartTime && canEditDate && (
-                      <div className="flex space-x-2">
+                      <div className="attendance-actions flex space-x-1 md:space-x-2">
                         <button
                           onClick={() => onUpdateAttendance(data.id, selectedDate, 'Present')}
-                          className={`px-3 py-1 text-xs font-medium rounded ${
+                          className={`px-2 md:px-3 py-1 text-xs font-medium rounded ${
                             data.status === 'Present' 
                               ? 'bg-green-600 text-white' 
                               : 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -513,7 +515,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                         </button>
                         <button
                           onClick={() => setShowHalfDayModal({staffId: data.id, staffName: data.originalName || data.name})}
-                          className={`px-3 py-1 text-xs font-medium rounded ${
+                          className={`px-2 md:px-3 py-1 text-xs font-medium rounded ${
                             data.status === 'Half Day' 
                               ? 'bg-yellow-600 text-white' 
                               : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
@@ -523,7 +525,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                         </button>
                         <button
                           onClick={() => onUpdateAttendance(data.id, selectedDate, 'Absent')}
-                          className={`px-3 py-1 text-xs font-medium rounded ${
+                          className={`px-2 md:px-3 py-1 text-xs font-medium rounded ${
                             data.status === 'Absent' 
                               ? 'bg-red-600 text-white' 
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -538,7 +540,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                               staffName: data.originalName || data.name,
                               currentLocation: data.originalLocation || data.location
                             })}
-                            className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                            className="px-1 md:px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                             title="Change location for today"
                           >
                             <MapPin size={12} />
@@ -559,8 +561,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
 
       {/* Half Day Modal */}
       {showHalfDayModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="modal-container bg-white rounded-xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Clock className="text-yellow-600" size={20} />
               Half Day - {showHalfDayModal.staffName}
@@ -588,16 +590,16 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                 Evening
               </label>
             </div>
-            <div className="flex gap-3">
+            <div className="form-actions flex gap-3">
               <button
                 onClick={handleHalfDayConfirm}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
               >
                 Confirm Half Day
               </button>
               <button
                 onClick={() => setShowHalfDayModal(null)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
@@ -608,8 +610,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
 
       {/* Location Change Modal */}
       {showLocationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="modal-container bg-white rounded-xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
               <MapPin className="text-blue-600" size={20} />
               Change Location - {showLocationModal.staffName}
@@ -650,16 +652,16 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                 Godown
               </label>
             </div>
-            <div className="flex gap-3">
+            <div className="form-actions flex gap-3">
               <button
                 onClick={handleLocationChange}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Change Location
               </button>
               <button
                 onClick={() => setShowLocationModal(null)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>

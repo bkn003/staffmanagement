@@ -40,25 +40,25 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
   const tabs = getAvailableTabs();
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-2xl font-bold text-gray-800">Staff Management System</h1>
-          <div className="flex space-x-1">
+    <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
+      <div className="navigation-container flex items-center justify-between">
+        <div className="flex items-center gap-4 md:gap-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Staff Management System</h1>
+          <div className="navigation-tabs flex space-x-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`navigation-tab flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     activeTab === tab.id
                       ? 'bg-blue-500 text-white shadow-lg'
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
                 >
                   <Icon size={16} />
-                  <span>{tab.label}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
             })}
@@ -66,7 +66,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="text-right">
+          <div className="text-right hidden md:block">
             <div className="text-sm font-medium text-gray-800">
               {user.role === 'admin' ? 'Administrator' : `${user.location} Manager`}
             </div>
@@ -77,7 +77,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
             className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut size={16} />
-            <span className="text-sm">Logout</span>
+            <span className="hidden sm:inline text-sm">Logout</span>
           </button>
         </div>
       </div>

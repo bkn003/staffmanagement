@@ -117,17 +117,17 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Users className="text-blue-600" size={32} />
+      <div className="page-header flex items-center justify-between">
+        <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
+          <Users className="text-blue-600" size={24} className="md:w-8 md:h-8" />
           Staff Management
         </h1>
-        <div className="flex gap-3">
+        <div className="header-actions flex gap-3">
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             <Plus size={16} />
             Add Staff
@@ -137,11 +137,11 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
 
       {/* Add/Edit Form */}
       {(showAddForm || editingStaff) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">
             {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
           </h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <form onSubmit={handleSubmit} className="form-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
@@ -204,10 +204,10 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 required
               />
             </div>
-            <div className="md:col-span-2 lg:col-span-3 flex gap-3">
+            <div className="md:col-span-2 lg:col-span-3 form-actions flex gap-3">
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="mobile-full-button px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 {editingStaff ? 'Update Staff' : 'Add Staff'}
               </button>
@@ -218,7 +218,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                   setEditingStaff(null);
                   resetForm();
                 }}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="mobile-full-button px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
@@ -229,8 +229,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="modal-container bg-white rounded-xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Archive className="text-red-600" size={20} />
               Archive Staff Member
@@ -250,17 +250,17 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 required
               />
             </div>
-            <div className="flex gap-3">
+            <div className="form-actions flex gap-3">
               <button
                 onClick={confirmDelete}
                 disabled={!deleteReason.trim()}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Archive Staff
               </button>
               <button
                 onClick={() => setShowDeleteModal(null)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
@@ -271,8 +271,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
 
       {/* Salary History Modal */}
       {showSalaryHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="modal-container bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <TrendingUp className="text-green-600" size={24} />
@@ -311,20 +311,20 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
             Active Staff ({activeStaff.length})
           </h2>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-container overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary History</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary History</th>
+                <th className="px-3 md:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -334,8 +334,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 
                 return (
                   <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{member.name}</div>
                         <div className="text-sm text-gray-500 flex items-center gap-1">
@@ -344,19 +344,19 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(member.location)}`}>
                         {member.location}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
                       {calculateExperience(member.joinedDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.basicSalary.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.incentive.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.hra.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">₹{member.totalSalary.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.basicSalary.toLocaleString()}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.incentive.toLocaleString()}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.hra.toLocaleString()}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">₹{member.totalSalary.toLocaleString()}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => setShowSalaryHistory(member)}
                         className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
@@ -369,7 +369,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                         {hasHikes ? `${memberHikes.length} hikes` : 'No hikes'}
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEdit(member)}
