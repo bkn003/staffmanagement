@@ -10,6 +10,7 @@ export interface Staff {
   totalSalary: number;
   joinedDate: string;
   isActive: boolean;
+  initialSalary?: number; // Store first salary for hike tracking
 }
 
 export interface PartTimeStaff {
@@ -116,6 +117,22 @@ export interface AdvanceDeduction {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SalaryHike {
+  id: string;
+  staffId: string;
+  oldSalary: number;
+  newSalary: number;
+  hikeDate: string;
+  reason?: string;
+  createdAt: string;
+}
+
+export interface User {
+  email: string;
+  role: 'admin' | 'manager';
+  location?: string;
 }
 
 export type NavigationTab = 'Dashboard' | 'Staff Management' | 'Attendance' | 'Salary Management' | 'Part-Time Staff' | 'Old Staff Records';

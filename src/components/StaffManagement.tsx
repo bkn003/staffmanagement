@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Staff, OldStaffRecord } from '../types';
-import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar } from 'lucide-react';
+import { Staff, OldStaffRecord, SalaryHike } from '../types';
+import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp } from 'lucide-react';
 import { calculateExperience } from '../utils/salaryCalculations';
+import SalaryHikeHistory from './SalaryHikeHistory';
 
 interface StaffManagementProps {
   staff: Staff[];
+  salaryHikes: SalaryHike[];
   onAddStaff: (staff: Omit<Staff, 'id'>) => void;
   onUpdateStaff: (id: string, staff: Partial<Staff>) => void;
   onDeleteStaff: (id: string, reason: string) => void;
@@ -12,6 +14,7 @@ interface StaffManagementProps {
 
 const StaffManagement: React.FC<StaffManagementProps> = ({
   staff,
+  salaryHikes,
   onAddStaff,
   onUpdateStaff,
   onDeleteStaff
@@ -19,6 +22,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<Staff | null>(null);
+  const [showSalaryHistory, setShowSalaryHistory] = useState<Staff | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
 
   const [formData, setFormData] = useState({
@@ -62,7 +66,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
         totalSalary, 
         experience,
         type: 'full-time', // All staff are full-time by default
-        isActive: true 
+        isActive: true,
+        initialSalary: totalSalary
       });
       setShowAddForm(false);
     }
@@ -105,6 +110,10 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getStaffSalaryHikes = (staffId: string) => {
+    return salaryHikes.filter(hike => hike.staffId === staffId);
   };
 
   return (
@@ -260,6 +269,41 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
         </div>
       )}
 
+      {/* Salary History Modal */}
+      {showSalaryHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <TrendingUp className="text-green-600" size={24} />
+                Salary Hike History
+              </h3>
+              <button
+                onClick={() => setShowSalaryHistory(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <SalaryHikeHistory
+              salaryHikes={getStaffSalaryHikes(showSalaryHistory.id)}
+              staffName={showSalaryHistory.name}
+              currentSalary={showSalaryHistory.totalSalary}
+            />
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowSalaryHistory(null)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Staff Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-200">
@@ -279,54 +323,73 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary History</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {activeStaff.map((member, index) => (
-                <tr key={member.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                      <div className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar size={12} />
-                        Joined: {new Date(member.joinedDate).toLocaleDateString()}
+              {activeStaff.map((member, index) => {
+                const memberHikes = getStaffSalaryHikes(member.id);
+                const hasHikes = memberHikes.length > 0;
+                
+                return (
+                  <tr key={member.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                          <Calendar size={12} />
+                          Joined: {new Date(member.joinedDate).toLocaleDateString()}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(member.location)}`}>
-                      {member.location}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                    {calculateExperience(member.joinedDate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.basicSalary.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.incentive.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.hra.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">₹{member.totalSalary.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLocationColor(member.location)}`}>
+                        {member.location}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                      {calculateExperience(member.joinedDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.basicSalary.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.incentive.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{member.hra.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">₹{member.totalSalary.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleEdit(member)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                        title="Edit staff member"
+                        onClick={() => setShowSalaryHistory(member)}
+                        className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                          hasHikes 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
                       >
-                        <Edit2 size={16} />
+                        <TrendingUp size={12} />
+                        {hasHikes ? `${memberHikes.length} hikes` : 'No hikes'}
                       </button>
-                      <button
-                        onClick={() => handleDelete(member)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Archive staff member"
-                      >
-                        <Archive size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(member)}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Edit staff member"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(member)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Archive staff member"
+                        >
+                          <Archive size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

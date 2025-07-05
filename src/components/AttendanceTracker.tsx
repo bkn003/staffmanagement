@@ -11,6 +11,7 @@ interface AttendanceTrackerProps {
   onDateChange: (date: string) => void;
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
   onBulkUpdateAttendance: (date: string, status: 'Present' | 'Absent') => void;
+  userRole: 'admin' | 'manager';
 }
 
 const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
@@ -19,7 +20,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   selectedDate,
   onDateChange,
   onUpdateAttendance,
-  onBulkUpdateAttendance
+  onBulkUpdateAttendance,
+  userRole
 }) => {
   const [view, setView] = useState<'daily' | 'monthly'>('daily');
   const [monthlyDate, setMonthlyDate] = useState({
@@ -36,6 +38,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   const [selectedLocation, setSelectedLocation] = useState<'Big Shop' | 'Small Shop' | 'Godown'>('Big Shop');
 
   const activeStaff = staff.filter(member => member.isActive);
+  const today = new Date().toISOString().split('T')[0];
+  const canEditDate = userRole === 'admin' || selectedDate === today;
 
   const getAttendanceForDate = (staffId: string, date: string) => {
     const record = attendance.find(a => a.staffId === staffId && a.date === date && !a.isPartTime);
@@ -82,7 +86,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   };
 
   const handleHalfDayConfirm = () => {
-    if (showHalfDayModal) {
+    if (showHalfDayModal && canEditDate) {
       onUpdateAttendance(
         showHalfDayModal.staffId,
         selectedDate,
@@ -96,7 +100,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   };
 
   const handleLocationChange = () => {
-    if (showLocationModal) {
+    if (showLocationModal && canEditDate) {
       const attendanceRecord = getAttendanceForDate(showLocationModal.staffId, selectedDate);
       onUpdateAttendance(
         showLocationModal.staffId,
@@ -141,10 +145,20 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   };
 
   const handleExportPDF = () => {
-    exportAttendancePDF(staff, attendance, selectedDate);
+    if (userRole === 'admin') {
+      exportAttendancePDF(staff, attendance, selectedDate);
+    }
   };
 
   const generateMonthlyView = () => {
+    if (userRole !== 'admin') {
+      return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <p className="text-center text-gray-600">Monthly view is only available for administrators.</p>
+        </div>
+      );
+    }
+
     const year = monthlyDate.year;
     const month = monthlyDate.month;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -326,19 +340,23 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             <h1 className="text-3xl font-bold">Attendance Tracker</h1>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => setView('monthly')}
-              className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
-            >
-              Monthly View
-            </button>
-            <button 
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
-            >
-              <Download size={16} />
-              Export PDF
-            </button>
+            {userRole === 'admin' && (
+              <>
+                <button
+                  onClick={() => setView('monthly')}
+                  className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  Monthly View
+                </button>
+                <button 
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <Download size={16} />
+                  Export PDF
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -359,23 +377,30 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                 Sunday - ₹500 penalty for absents
               </span>
             )}
+            {!canEditDate && (
+              <span className="px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full">
+                Managers can only edit today's attendance
+              </span>
+            )}
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Check size={16} />
-              All Present
-            </button>
-            <button
-              onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <X size={16} />
-              All Absent
-            </button>
-          </div>
+          {userRole === 'admin' && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Check size={16} />
+                All Present
+              </button>
+              <button
+                onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <X size={16} />
+                All Absent
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Filters */}
@@ -474,7 +499,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {!data.isPartTime && (
+                    {!data.isPartTime && canEditDate && (
                       <div className="flex space-x-2">
                         <button
                           onClick={() => onUpdateAttendance(data.id, selectedDate, 'Present')}
@@ -506,18 +531,23 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                         >
                           Absent
                         </button>
-                        <button
-                          onClick={() => setShowLocationModal({
-                            staffId: data.id, 
-                            staffName: data.originalName || data.name,
-                            currentLocation: data.originalLocation || data.location
-                          })}
-                          className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
-                          title="Change location for today"
-                        >
-                          <MapPin size={12} />
-                        </button>
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={() => setShowLocationModal({
+                              staffId: data.id, 
+                              staffName: data.originalName || data.name,
+                              currentLocation: data.originalLocation || data.location
+                            })}
+                            className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                            title="Change location for today"
+                          >
+                            <MapPin size={12} />
+                          </button>
+                        )}
                       </div>
+                    )}
+                    {!canEditDate && !data.isPartTime && (
+                      <span className="text-xs text-gray-400">View only</span>
                     )}
                   </td>
                 </tr>

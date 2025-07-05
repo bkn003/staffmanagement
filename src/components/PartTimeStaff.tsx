@@ -7,11 +7,13 @@ import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 interface PartTimeStaffProps {
   attendance: Attendance[];
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
+  userLocation?: string;
 }
 
 const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   attendance,
-  onUpdateAttendance
+  onUpdateAttendance,
+  userLocation
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -21,12 +23,16 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
   const [editSalary, setEditSalary] = useState<number>(0);
-  const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>('All');
+  const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>(
+    userLocation ? userLocation as any : 'All'
+  );
   const [newStaffData, setNewStaffData] = useState({
     name: '',
-    location: 'Big Shop' as 'Big Shop' | 'Small Shop' | 'Godown',
+    location: (userLocation || 'Big Shop') as 'Big Shop' | 'Small Shop' | 'Godown',
     shift: 'Morning' as 'Morning' | 'Evening' | 'Both'
   });
+
+  const today = new Date().toISOString().split('T')[0];
 
   // Get current week's Monday
   const getCurrentWeekMonday = (date: Date) => {
@@ -35,45 +41,19 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     return new Date(date.setDate(diff));
   };
 
-  // Get unique part-time staff for the current week
-  const getCurrentWeekPartTimeStaff = () => {
-    const currentWeekMonday = getCurrentWeekMonday(new Date(selectedDate));
-    const weekEnd = new Date(currentWeekMonday);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    const weeklyAttendance = attendance.filter(record => {
-      const recordDate = new Date(record.date);
-      return record.isPartTime && 
-             recordDate >= currentWeekMonday && 
-             recordDate <= weekEnd;
-    });
-
-    const uniqueStaff = new Map();
-    weeklyAttendance.forEach(record => {
-      if (record.staffName) {
-        const key = `${record.staffName}-${record.location}`;
-        if (!uniqueStaff.has(key)) {
-          uniqueStaff.set(key, {
-            name: record.staffName,
-            location: record.location || 'Unknown',
-            records: []
-          });
-        }
-        uniqueStaff.get(key).records.push(record);
-      }
-    });
-
-    return Array.from(uniqueStaff.values());
-  };
-
   // Calculate part-time salaries for the selected month
   const calculatePartTimeSalaries = (): PartTimeSalaryDetail[] => {
-    const monthlyAttendance = attendance.filter(record => {
+    let monthlyAttendance = attendance.filter(record => {
       const recordDate = new Date(record.date);
       return record.isPartTime && 
              recordDate.getMonth() === selectedMonth && 
              recordDate.getFullYear() === selectedYear;
     });
+
+    // Filter by user location if manager
+    if (userLocation) {
+      monthlyAttendance = monthlyAttendance.filter(record => record.location === userLocation);
+    }
 
     const uniqueStaff = new Map();
     monthlyAttendance.forEach(record => {
@@ -101,9 +81,14 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const totalPartTimeEarnings = partTimeSalaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
 
   // Get today's part-time attendance
-  const todayPartTimeAttendance = attendance.filter(record => 
+  let todayPartTimeAttendance = attendance.filter(record => 
     record.isPartTime && record.date === selectedDate
   );
+
+  // Filter by user location if manager
+  if (userLocation) {
+    todayPartTimeAttendance = todayPartTimeAttendance.filter(record => record.location === userLocation);
+  }
 
   // Filter by location
   const filteredTodayAttendance = locationFilter === 'All' 
@@ -131,7 +116,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       defaultSalary,
       false
     );
-    setNewStaffData({ name: '', location: 'Big Shop', shift: 'Morning' });
+    setNewStaffData({ 
+      name: '', 
+      location: (userLocation || 'Big Shop') as any, 
+      shift: 'Morning' 
+    });
     setShowAddForm(false);
   };
 
@@ -177,6 +166,14 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     return acc;
   }, {} as Record<string, PartTimeSalaryDetail[]>);
 
+  // Filter locations based on user role
+  const getAvailableLocations = () => {
+    if (userLocation) {
+      return [userLocation];
+    }
+    return ['All', 'Big Shop', 'Small Shop', 'Godown'];
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -185,6 +182,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           <div className="flex items-center gap-3">
             <Clock size={32} />
             <h1 className="text-3xl font-bold">Part-Time Staff Management</h1>
+            {userLocation && (
+              <span className="px-3 py-1 bg-white/20 rounded-full text-sm">
+                {userLocation}
+              </span>
+            )}
           </div>
           <div className="flex gap-3">
             <button
@@ -233,6 +235,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 value={newStaffData.location}
                 onChange={(e) => setNewStaffData({ ...newStaffData, location: e.target.value as any })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                disabled={!!userLocation}
               >
                 <option value="Big Shop">Big Shop</option>
                 <option value="Small Shop">Small Shop</option>
@@ -287,19 +290,20 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">Filter by Location</label>
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="All">All Locations</option>
-              <option value="Big Shop">Big Shop</option>
-              <option value="Small Shop">Small Shop</option>
-              <option value="Godown">Godown</option>
-            </select>
-          </div>
+          {!userLocation && (
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700">Filter by Location</label>
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value as any)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                {getAvailableLocations().map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -309,7 +313,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Calendar className="text-purple-600" size={20} />
             Part-Time Staff Attendance - {new Date(selectedDate).toLocaleDateString()}
-            {locationFilter !== 'All' && <span className="text-sm text-gray-500">({locationFilter})</span>}
+            {(locationFilter !== 'All' || userLocation) && (
+              <span className="text-sm text-gray-500">
+                ({userLocation || locationFilter})
+              </span>
+            )}
           </h2>
         </div>
         
@@ -390,7 +398,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingAttendance !== record.id && (
+                      {editingAttendance !== record.id && selectedDate === today && (
                         <button
                           onClick={() => handleEditSalary(record.id, record.salary || getPartTimeDailySalary(record.date))}
                           className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
@@ -414,6 +422,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <DollarSign className="text-green-600" size={20} />
             Part-Time Staff Salary Report
+            {userLocation && (
+              <span className="text-sm text-gray-500">- {userLocation}</span>
+            )}
           </h2>
           <div className="flex gap-4">
             <select

@@ -1,48 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import StaffManagement from './components/StaffManagement';
 import AttendanceTracker from './components/AttendanceTracker';
 import SalaryManagement from './components/SalaryManagement';
 import PartTimeStaff from './components/PartTimeStaff';
 import OldStaffRecords from './components/OldStaffRecords';
-import { NavigationTab, Staff, Attendance, AdvanceDeduction, OldStaffRecord } from './types';
+import SalaryHikeModal from './components/SalaryHikeModal';
+import { NavigationTab, Staff, Attendance, AdvanceDeduction, OldStaffRecord, SalaryHike, User } from './types';
 import { staffService } from './services/staffService';
 import { attendanceService } from './services/attendanceService';
 import { advanceService } from './services/advanceService';
 import { oldStaffService } from './services/oldStaffService';
+import { salaryHikeService } from './services/salaryHikeService';
 import { isSunday } from './utils/salaryCalculations';
 
 function App() {
+  const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavigationTab>('Dashboard');
   const [staff, setStaff] = useState<Staff[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [advances, setAdvances] = useState<AdvanceDeduction[]>([]);
   const [oldStaffRecords, setOldStaffRecords] = useState<OldStaffRecord[]>([]);
+  const [salaryHikes, setSalaryHikes] = useState<SalaryHike[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
   const [loading, setLoading] = useState(true);
+  const [salaryHikeModal, setSalaryHikeModal] = useState<{
+    isOpen: boolean;
+    staffId: string;
+    staffName: string;
+    currentSalary: number;
+    newSalary: number;
+    onConfirm: (isHike: boolean, reason?: string) => void;
+  } | null>(null);
 
   // Load all data from Supabase on app start
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (user) {
+      loadAllData();
+    }
+  }, [user]);
+
+  // Set default tab based on user role
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'manager') {
+        setActiveTab('Attendance');
+      } else {
+        setActiveTab('Dashboard');
+      }
+    }
+  }, [user]);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [staffData, attendanceData, advancesData, oldStaffData] = await Promise.all([
+      const [staffData, attendanceData, advancesData, oldStaffData, salaryHikesData] = await Promise.all([
         staffService.getAll(),
         attendanceService.getAll(),
         advanceService.getAll(),
-        oldStaffService.getAll()
+        oldStaffService.getAll(),
+        salaryHikeService.getAll()
       ]);
 
       setStaff(staffData);
       setAttendance(attendanceData);
       setAdvances(advancesData);
       setOldStaffRecords(oldStaffData);
+      setSalaryHikes(salaryHikesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -50,9 +78,46 @@ function App() {
     }
   };
 
+  const handleLogin = (userData: User) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setActiveTab('Dashboard');
+  };
+
+  // Filter staff based on user role and location
+  const getFilteredStaff = () => {
+    if (user?.role === 'admin') {
+      return staff;
+    } else if (user?.role === 'manager' && user.location) {
+      return staff.filter(member => member.location === user.location);
+    }
+    return [];
+  };
+
+  // Filter attendance based on user role and location
+  const getFilteredAttendance = () => {
+    if (user?.role === 'admin') {
+      return attendance;
+    } else if (user?.role === 'manager' && user.location) {
+      const locationStaffIds = staff
+        .filter(member => member.location === user.location)
+        .map(member => member.id);
+      
+      return attendance.filter(record => 
+        record.isPartTime 
+          ? record.location === user.location
+          : locationStaffIds.includes(record.staffId)
+      );
+    }
+    return [];
+  };
+
   // Auto-carry forward advances from previous month
   useEffect(() => {
-    if (staff.length === 0 || advances.length === 0) return;
+    if (staff.length === 0 || advances.length === 0 || user?.role !== 'admin') return;
 
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -87,7 +152,7 @@ function App() {
         }
       }
     });
-  }, [staff, advances]);
+  }, [staff, advances, user]);
 
   // Update attendance for a specific staff member
   const updateAttendance = async (
@@ -101,6 +166,15 @@ function App() {
     salary?: number,
     salaryOverride?: boolean
   ) => {
+    // Check if manager is trying to edit non-today attendance
+    if (user?.role === 'manager') {
+      const today = new Date().toISOString().split('T')[0];
+      if (date !== today) {
+        alert('Managers can only edit today\'s attendance');
+        return;
+      }
+    }
+
     const attendanceValue = status === 'Present' ? 1 : status === 'Half Day' ? 0.5 : 0;
     
     const attendanceRecord = {
@@ -140,8 +214,13 @@ function App() {
     }
   };
 
-  // Bulk update attendance
+  // Bulk update attendance (admin only)
   const bulkUpdateAttendance = async (date: string, status: 'Present' | 'Absent') => {
+    if (user?.role !== 'admin') {
+      alert('Only administrators can perform bulk updates');
+      return;
+    }
+
     const activeStaff = staff.filter(member => member.isActive);
     const attendanceRecords = activeStaff.map(member => ({
       staffId: member.id,
@@ -164,30 +243,94 @@ function App() {
     }
   };
 
-  // Add new staff member
+  // Add new staff member (admin only)
   const addStaff = async (newStaff: Omit<Staff, 'id'>) => {
+    if (user?.role !== 'admin') {
+      alert('Only administrators can add staff');
+      return;
+    }
+
     try {
-      const savedStaff = await staffService.create(newStaff);
+      // Set initial salary for hike tracking
+      const staffWithInitialSalary = {
+        ...newStaff,
+        initialSalary: newStaff.totalSalary
+      };
+      
+      const savedStaff = await staffService.create(staffWithInitialSalary);
       setStaff(prev => [...prev, savedStaff]);
     } catch (error) {
       console.error('Error adding staff:', error);
     }
   };
 
-  // Update staff member
+  // Update staff member with salary hike tracking
   const updateStaff = async (id: string, updatedStaff: Partial<Staff>) => {
-    try {
-      const savedStaff = await staffService.update(id, updatedStaff);
-      setStaff(prev => prev.map(member => 
-        member.id === id ? savedStaff : member
-      ));
-    } catch (error) {
-      console.error('Error updating staff:', error);
+    if (user?.role !== 'admin') {
+      alert('Only administrators can update staff');
+      return;
+    }
+
+    const currentStaff = staff.find(s => s.id === id);
+    if (!currentStaff) return;
+
+    // Check if salary is being changed
+    const isSalaryChange = updatedStaff.totalSalary && updatedStaff.totalSalary !== currentStaff.totalSalary;
+    
+    if (isSalaryChange) {
+      // Show salary hike modal
+      setSalaryHikeModal({
+        isOpen: true,
+        staffId: id,
+        staffName: currentStaff.name,
+        currentSalary: currentStaff.totalSalary,
+        newSalary: updatedStaff.totalSalary!,
+        onConfirm: async (isHike: boolean, reason?: string) => {
+          try {
+            // Update staff record
+            const savedStaff = await staffService.update(id, updatedStaff);
+            setStaff(prev => prev.map(member => 
+              member.id === id ? savedStaff : member
+            ));
+
+            // If it's a hike, record it
+            if (isHike) {
+              const salaryHike = {
+                staffId: id,
+                oldSalary: currentStaff.totalSalary,
+                newSalary: updatedStaff.totalSalary!,
+                hikeDate: new Date().toISOString(),
+                reason
+              };
+              
+              const savedHike = await salaryHikeService.create(salaryHike);
+              setSalaryHikes(prev => [savedHike, ...prev]);
+            }
+          } catch (error) {
+            console.error('Error updating staff:', error);
+          }
+        }
+      });
+    } else {
+      // Regular update without salary change
+      try {
+        const savedStaff = await staffService.update(id, updatedStaff);
+        setStaff(prev => prev.map(member => 
+          member.id === id ? savedStaff : member
+        ));
+      } catch (error) {
+        console.error('Error updating staff:', error);
+      }
     }
   };
 
-  // Delete staff member (archive to old records)
+  // Delete staff member (admin only)
   const deleteStaff = async (id: string, reason: string) => {
+    if (user?.role !== 'admin') {
+      alert('Only administrators can delete staff');
+      return;
+    }
+
     const staffMember = staff.find(s => s.id === id);
     if (!staffMember) return;
 
@@ -231,8 +374,13 @@ function App() {
     }
   };
 
-  // Rejoin staff from old records
+  // Rejoin staff from old records (admin only)
   const rejoinStaff = async (record: OldStaffRecord) => {
+    if (user?.role !== 'admin') {
+      alert('Only administrators can rejoin staff');
+      return;
+    }
+
     try {
       // Restore staff member
       const restoredStaff = {
@@ -245,7 +393,8 @@ function App() {
         hra: record.hra,
         totalSalary: record.totalSalary,
         joinedDate: new Date().toLocaleDateString('en-US'), // New join date
-        isActive: true
+        isActive: true,
+        initialSalary: record.totalSalary
       };
 
       const savedStaff = await staffService.create(restoredStaff);
@@ -281,8 +430,13 @@ function App() {
     }
   };
 
-  // Update advances and deductions
+  // Update advances and deductions (admin only)
   const updateAdvances = async (staffId: string, month: number, year: number, advanceData: Partial<AdvanceDeduction>) => {
+    if (user?.role !== 'admin') {
+      alert('Only administrators can update advances');
+      return;
+    }
+
     try {
       const existingAdvance = advances.find(adv => 
         adv.staffId === staffId && adv.month === month && adv.year === year
@@ -332,19 +486,25 @@ function App() {
       );
     }
 
+    const filteredStaff = getFilteredStaff();
+    const filteredAttendance = getFilteredAttendance();
+
     switch (activeTab) {
       case 'Dashboard':
+        if (user?.role !== 'admin') return null;
         return (
           <Dashboard 
-            staff={staff} 
-            attendance={attendance} 
+            staff={filteredStaff} 
+            attendance={filteredAttendance} 
             selectedDate={selectedDate}
           />
         );
       case 'Staff Management':
+        if (user?.role !== 'admin') return null;
         return (
           <StaffManagement 
-            staff={staff}
+            staff={filteredStaff}
+            salaryHikes={salaryHikes}
             onAddStaff={addStaff}
             onUpdateStaff={updateStaff}
             onDeleteStaff={deleteStaff}
@@ -353,19 +513,21 @@ function App() {
       case 'Attendance':
         return (
           <AttendanceTracker 
-            staff={staff}
-            attendance={attendance}
+            staff={filteredStaff}
+            attendance={filteredAttendance}
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
             onUpdateAttendance={updateAttendance}
             onBulkUpdateAttendance={bulkUpdateAttendance}
+            userRole={user?.role || 'manager'}
           />
         );
       case 'Salary Management':
+        if (user?.role !== 'admin') return null;
         return (
           <SalaryManagement 
-            staff={staff}
-            attendance={attendance}
+            staff={filteredStaff}
+            attendance={filteredAttendance}
             advances={advances}
             onUpdateAdvances={updateAdvances}
           />
@@ -373,11 +535,13 @@ function App() {
       case 'Part-Time Staff':
         return (
           <PartTimeStaff 
-            attendance={attendance}
+            attendance={filteredAttendance}
             onUpdateAttendance={updateAttendance}
+            userLocation={user?.location}
           />
         );
       case 'Old Staff Records':
+        if (user?.role !== 'admin') return null;
         return (
           <OldStaffRecords 
             oldStaffRecords={oldStaffRecords}
@@ -389,12 +553,32 @@ function App() {
     }
   };
 
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navigation 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        user={user}
+        onLogout={handleLogout}
+      />
       <main className="max-w-7xl mx-auto">
         {renderContent()}
       </main>
+      
+      {salaryHikeModal && (
+        <SalaryHikeModal
+          isOpen={salaryHikeModal.isOpen}
+          onClose={() => setSalaryHikeModal(null)}
+          staffName={salaryHikeModal.staffName}
+          currentSalary={salaryHikeModal.currentSalary}
+          newSalary={salaryHikeModal.newSalary}
+          onConfirm={salaryHikeModal.onConfirm}
+        />
+      )}
     </div>
   );
 }
