@@ -216,13 +216,21 @@ function App() {
 
   // Bulk update attendance (admin only)
   const bulkUpdateAttendance = async (date: string, status: 'Present' | 'Absent') => {
-    if (user?.role !== 'admin') {
-      alert('Only administrators can perform bulk updates');
+    // Allow both admin and managers to perform bulk updates
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      alert('Only administrators and managers can perform bulk updates');
       return;
     }
 
-    const activeStaff = staff.filter(member => member.isActive);
-    const attendanceRecords = activeStaff.map(member => ({
+    // Filter staff based on user role and location
+    let targetStaff = staff.filter(member => member.isActive);
+    
+    if (user.role === 'manager' && user.location) {
+      // Managers can only bulk update staff from their location
+      targetStaff = targetStaff.filter(member => member.location === user.location);
+    }
+
+    const attendanceRecords = targetStaff.map(member => ({
       staffId: member.id,
       date,
       status,

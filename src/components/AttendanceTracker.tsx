@@ -402,24 +402,22 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             </div>
           )}
         </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <Filter size={16} className="text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Filters:</span>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <select
-              value={filters.staffType}
-              onChange={(e) => setFilters({ ...filters, staffType: e.target.value as any })}
-              className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Staff</option>
-              <option value="full-time">Full-Time Only</option>
-              <option value="part-time">Part-Time Only</option>
-            </select>
-            <select
+        <div className="header-actions flex gap-3">
+          <button
+            onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
+            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Check size={16} />
+            All Present
+          </button>
+          <button
+            onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
+            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+          >
+            <X size={16} />
+            All Absent
+          </button>
+        </div>
               value={filters.shift}
               onChange={(e) => setFilters({ ...filters, shift: e.target.value as any })}
               className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -533,19 +531,17 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                         >
                           Absent
                         </button>
-                        {userRole === 'admin' && (
-                          <button
-                            onClick={() => setShowLocationModal({
-                              staffId: data.id, 
-                              staffName: data.originalName || data.name,
-                              currentLocation: data.originalLocation || data.location
-                            })}
-                            className="px-1 md:px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
-                            title="Change location for today"
-                          >
-                            <MapPin size={12} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setShowLocationModal({
+                            staffId: data.id, 
+                            staffName: data.originalName || data.name,
+                            currentLocation: data.originalLocation || data.location
+                          })}
+                          className="px-1 md:px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                          title="Change location for today"
+                        >
+                          <MapPin size={12} />
+                        </button>
                       </div>
                     )}
                     {!canEditDate && !data.isPartTime && (
