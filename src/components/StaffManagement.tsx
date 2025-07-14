@@ -121,7 +121,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       {/* Header */}
       <div className="page-header flex items-center justify-between">
         <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Users className="text-blue-600" size={24} className="md:w-8 md:h-8" />
+          <Users className="text-blue-600 md:w-8 md:h-8" size={24} />
           Staff Management
         </h1>
         <div className="header-actions flex gap-3">

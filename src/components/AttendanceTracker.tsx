@@ -402,22 +402,24 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             </div>
           )}
         </div>
-        <div className="header-actions flex gap-3">
-          <button
-            onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
-            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-          >
-            <Check size={16} />
-            All Present
-          </button>
-          <button
-            onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
-            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-          >
-            <X size={16} />
-            All Absent
-          </button>
-        </div>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-500" />
+            <label className="text-sm font-medium text-gray-700">Staff Type:</label>
+            <select
+              value={filters.staffType}
+              onChange={(e) => setFilters({ ...filters, staffType: e.target.value as any })}
+              className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Staff</option>
+              <option value="full-time">Full-time Only</option>
+              <option value="part-time">Part-time Only</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Shift:</label>
+            <select
               value={filters.shift}
               onChange={(e) => setFilters({ ...filters, shift: e.target.value as any })}
               className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
