@@ -186,6 +186,7 @@ export const calculateSalary = (
   attendanceMetrics: ReturnType<typeof calculateAttendanceMetrics>,
   advances: AdvanceDeduction | null,
   allAdvances: AdvanceDeduction[],
+  attendance: Attendance[],
   currentMonth: number,
   currentYear: number
 ): SalaryDetail => {
@@ -215,10 +216,22 @@ export const calculateSalary = (
     hraEarned = staff.hra; // Full HRA is added back
   }
 
-  // Calculate Sunday penalty
+  // Calculate Sunday penalty - including half-day Sunday penalty
   let sundayPenalty = 0;
   let adjustedIncentive = incentiveEarned;
 
+  // Get Sunday half-day count from attendance
+  const monthlyAttendance = attendance.filter(record => {
+    const recordDate = new Date(record.date);
+    return record.staffId === staff.id && 
+           recordDate.getMonth() === currentMonth && 
+           recordDate.getFullYear() === currentYear &&
+           !record.isPartTime;
+  });
+
+  const sundayHalfDays = monthlyAttendance
+    .filter(record => record.status === 'Half Day' && isSunday(record.date))
+    .length;
   if (sundayAbsents > 0) {
     const totalPenalty = sundayAbsents * 500;
     
@@ -231,6 +244,18 @@ export const calculateSalary = (
     }
   }
 
+  // Add Sunday half-day penalty (₹250 per half-day)
+  if (sundayHalfDays > 0) {
+    const halfDayPenalty = sundayHalfDays * 250;
+    
+    if (adjustedIncentive >= halfDayPenalty) {
+      adjustedIncentive -= halfDayPenalty;
+      sundayPenalty += halfDayPenalty;
+    } else {
+      sundayPenalty += adjustedIncentive;
+      adjustedIncentive = 0;
+    }
+  }
   // Gross salary calculation
   const grossSalary = roundToNearest10(basicEarned + adjustedIncentive + hraEarned);
 

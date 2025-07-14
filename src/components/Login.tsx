@@ -13,9 +13,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const users = [
     { email: 'staff@admin.com', password: 'Staffans7369', role: 'admin', location: null },
-    { email: 'manager@bigshop.com', password: '123456', role: 'manager', location: 'Big Shop' },
-    { email: 'manager@smallshop.com', password: '123456', role: 'manager', location: 'Small Shop' },
-    { email: 'manager@godown.com', password: '123456', role: 'manager', location: 'Godown' }
+    { email: 'manager@bigshop.com', password: 'MngrBig25', role: 'manager', location: 'Big Shop' },
+    { email: 'manager@smallshop.com', password: 'MngrSml25', role: 'manager', location: 'Small Shop' },
+    { email: 'manager@godown.com', password: 'MngrGdn25', role: 'manager', location: 'Godown' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

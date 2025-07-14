@@ -35,6 +35,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       );
       
       return calculateSalary(member, attendanceMetrics, memberAdvances, advances, selectedMonth, selectedYear);
+      return calculateSalary(member, attendanceMetrics, memberAdvances, advances, attendance, selectedMonth, selectedYear);
     });
   };
 
