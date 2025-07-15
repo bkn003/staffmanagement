@@ -187,9 +187,9 @@ export const calculateSalary = (
   advances: AdvanceDeduction | null,
   allAdvances: AdvanceDeduction[],
   attendance: Attendance[],
+  attendance: Attendance[],
   currentMonth: number,
   currentYear: number
-): SalaryDetail => {
   const { totalPresentDays, sundayAbsents, daysInMonth, presentDays, halfDays, leaveDays } = attendanceMetrics;
   
   let basicEarned: number;
