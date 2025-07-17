@@ -25,7 +25,12 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
 
   // Part-time attendance
   const partTimeAttendance = todayAttendance.filter(record => record.isPartTime && record.status === 'Present');
-  const partTimeCount = partTimeAttendance.length;
+  
+  // Calculate part-time breakdown for top summary card
+  const partTimeBoth = partTimeAttendance.filter(record => record.shift === 'Both').length;
+  const partTimeMorning = partTimeAttendance.filter(record => record.shift === 'Morning').length;
+  const partTimeEvening = partTimeAttendance.filter(record => record.shift === 'Evening').length;
+  const partTimeTotal = partTimeBoth + partTimeMorning + partTimeEvening;
 
   // Calculate total present value including half days (corrected logic)
   const totalPresentValue = presentToday + halfDayToday;
@@ -145,8 +150,10 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Part-Time Today</p>
-              <p className="text-2xl md:text-3xl font-bold text-purple-600">{partTimeCount}</p>
-              <p className="text-xs text-gray-500">Working today</p>
+              <p className="text-2xl md:text-3xl font-bold text-purple-600">{partTimeTotal}</p>
+              <p className="text-xs text-gray-500">
+                (Both: {partTimeBoth}, Morning: {partTimeMorning}, Evening: {partTimeEvening})
+              </p>
             </div>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Clock className="text-purple-600" size={20} />
@@ -164,15 +171,21 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
         
         <div className="space-y-6">
           {locations.map((location) => {
-            // Get part-time staff for this location
-            const locationPartTime = partTimeAttendance.filter(record => 
+            // Calculate location-wise part-time breakdown
+            const locationPartTimeData = partTimeAttendance.filter(record => 
               record.location === location.name
             );
 
-            // Group part-time by shift
-            const partTimeBoth = locationPartTime.filter(record => record.shift === 'Both');
-            const partTimeMorning = locationPartTime.filter(record => record.shift === 'Morning');
-            const partTimeEvening = locationPartTime.filter(record => record.shift === 'Evening');
+            const locationBoth = locationPartTimeData.filter(record => record.shift === 'Both');
+            const locationMorning = locationPartTimeData.filter(record => record.shift === 'Morning');
+            const locationEvening = locationPartTimeData.filter(record => record.shift === 'Evening');
+
+            // Create names list in order: Both → Morning → Evening
+            const partTimeNames = [
+              ...locationBoth.map(record => `${record.staffName} (Both)`),
+              ...locationMorning.map(record => `${record.staffName} (Morning)`),
+              ...locationEvening.map(record => `${record.staffName} (Evening)`)
+            ];
 
             // Get full-time staff with detailed names (including shift info for half-day)
             const locationFullTimePresent = fullTimeAttendance.filter(record => {
@@ -200,15 +213,11 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
               <div key={location.name} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
                 <h3 className="text-base md:text-lg font-semibold text-blue-600 mb-4 text-center">
                   {location.name} - Total Present: {locationFullTimePresent.length + locationFullTimeHalfDay.length}
-                  {locationPartTime.length > 0 && (
+                  {locationPartTimeData.length > 0 && (
                     <span className="text-sm">
-                      {' + Part-Time: '}{locationPartTime.length}
+                      {' + Part-Time: '}{locationPartTimeData.length}
                       {' ('}
-                      {partTimeBoth.length > 0 && `Both: ${partTimeBoth.length}`}
-                      {partTimeBoth.length > 0 && (partTimeMorning.length > 0 || partTimeEvening.length > 0) && ', '}
-                      {partTimeMorning.length > 0 && `Morning: ${partTimeMorning.length}`}
-                      {partTimeMorning.length > 0 && partTimeEvening.length > 0 && ', '}
-                      {partTimeEvening.length > 0 && `Evening: ${partTimeEvening.length}`}
+                      Both: {locationBoth.length}, Morning: {locationMorning.length}, Evening: {locationEvening.length}
                       {')'}
                     </span>
                   )}
@@ -237,10 +246,12 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
                   </div>
 
                   <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
-                    <p className="text-base md:text-lg font-bold text-purple-600 mb-1">Part-Time: {locationPartTime.length}</p>
+                    <p className="text-base md:text-lg font-bold text-purple-600 mb-1">
+                      Part-Time: {locationPartTimeData.length} (Both: {locationBoth.length}, Morning: {locationMorning.length}, Evening: {locationEvening.length})
+                    </p>
                     <p className="text-sm text-gray-600">
-                      {locationPartTime.length > 0 
-                        ? locationPartTime.map(pt => formatStaffName(pt.staffId, true, pt.staffName, pt.shift)).join(', ')
+                      {partTimeNames.length > 0 
+                        ? partTimeNames.join(', ')
                         : 'None'
                       }
                     </p>
