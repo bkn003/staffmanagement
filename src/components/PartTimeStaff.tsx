@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Attendance, PartTimeSalaryDetail } from '../types';
-import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet } from 'lucide-react';
+import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
 import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 
@@ -22,7 +22,20 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<string | null>(null);
-  const [editSalary, setEditSalary] = useState<number>(0);
+  const [editData, setEditData] = useState<{
+    name: string;
+    location: string;
+    shift: string;
+    status: string;
+    salary: number;
+  }>({
+    name: '',
+    location: '',
+    shift: '',
+    status: '',
+    salary: 0
+  });
+  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>(
     userLocation ? userLocation as any : 'All'
   );
@@ -124,21 +137,27 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     setShowAddForm(false);
   };
 
-  const handleEditSalary = (attendanceId: string, currentSalary: number) => {
+  const handleEdit = (record: Attendance) => {
     setEditingAttendance(attendanceId);
-    setEditSalary(currentSalary);
+    setEditData({
+      name: record.staffName || '',
+      location: record.location || 'Big Shop',
+      shift: record.shift || 'Morning',
+      status: record.status,
+      salary: record.salary || getPartTimeDailySalary(record.date)
+    });
   };
 
-  const handleSaveSalary = (attendanceRecord: Attendance) => {
+  const handleSave = (attendanceRecord: Attendance) => {
     onUpdateAttendance(
       attendanceRecord.staffId,
       attendanceRecord.date,
-      attendanceRecord.status,
+      editData.status as 'Present' | 'Half Day' | 'Absent',
       true,
-      attendanceRecord.staffName,
-      attendanceRecord.shift,
-      attendanceRecord.location,
-      editSalary,
+      editData.name,
+      editData.shift as 'Morning' | 'Evening' | 'Both',
+      editData.location,
+      editData.salary,
       true
     );
     setEditingAttendance(null);
@@ -146,7 +165,30 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
 
   const handleCancelEdit = () => {
     setEditingAttendance(null);
-    setEditSalary(0);
+  };
+
+  const handleDelete = (attendanceId: string) => {
+    setShowDeleteModal(attendanceId);
+  };
+
+  const confirmDelete = () => {
+    if (showDeleteModal) {
+      const record = filteredTodayAttendance.find(r => r.id === showDeleteModal);
+      if (record) {
+        onUpdateAttendance(
+          record.staffId,
+          record.date,
+          'Absent',
+          true,
+          record.staffName,
+          record.shift,
+          record.location,
+          0,
+          false
+        );
+      }
+      setShowDeleteModal(null);
+    }
   };
 
   const handleExportExcel = () => {
@@ -365,26 +407,64 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingAttendance === record.id ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={editSalary}
-                            onChange={(e) => setEditSalary(Number(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
-                            min="0"
-                          />
-                          <button
-                            onClick={() => handleSaveSalary(record)}
-                            className="text-green-600 hover:text-green-800 p-1"
-                          >
-                            <Save size={14} />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="text-red-600 hover:text-red-800 p-1"
-                          >
-                            <X size={14} />
-                          </button>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={editData.name}
+                              onChange={(e) => setEditData({...editData, name: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                              placeholder="Name"
+                            />
+                            <select
+                              value={editData.location}
+                              onChange={(e) => setEditData({...editData, location: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                            >
+                              <option value="Big Shop">Big Shop</option>
+                              <option value="Small Shop">Small Shop</option>
+                              <option value="Godown">Godown</option>
+                            </select>
+                            <select
+                              value={editData.shift}
+                              onChange={(e) => setEditData({...editData, shift: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                            >
+                              <option value="Morning">Morning</option>
+                              <option value="Evening">Evening</option>
+                              <option value="Both">Both</option>
+                            </select>
+                            <select
+                              value={editData.status}
+                              onChange={(e) => setEditData({...editData, status: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                            >
+                              <option value="Present">Present</option>
+                              <option value="Half Day">Half Day</option>
+                              <option value="Absent">Absent</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={editData.salary}
+                              onChange={(e) => setEditData({...editData, salary: Number(e.target.value)})}
+                              className="w-20 px-2 py-1 text-xs border rounded"
+                              min="0"
+                            />
+                            <button
+                              onClick={() => handleSave(record)}
+                              className="text-green-600 hover:text-green-800 p-1"
+                            >
+                              <Save size={14} />
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="text-red-600 hover:text-red-800 p-1"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -398,14 +478,23 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingAttendance !== record.id && selectedDate === today && (
-                        <button
-                          onClick={() => handleEditSalary(record.id, record.salary || getPartTimeDailySalary(record.date))}
-                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                          title="Edit salary"
-                        >
-                          <Edit2 size={14} />
-                        </button>
+                      {editingAttendance !== record.id && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEdit(record)}
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                            title="Edit record"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(record.id)}
+                            className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                            title="Delete record"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -549,6 +638,32 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this part-time attendance record? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(null)}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

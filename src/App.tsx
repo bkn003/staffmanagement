@@ -370,7 +370,9 @@ function App() {
 
       // Save to database
       const savedOldRecord = await oldStaffService.create(oldRecord);
-      await staffService.delete(id);
+      
+      // Soft delete - mark as inactive instead of hard delete
+      await staffService.update(id, { isActive: false });
 
       // Update local state
       setOldStaffRecords(prev => [...prev, savedOldRecord]);

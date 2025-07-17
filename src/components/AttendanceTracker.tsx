@@ -401,6 +401,22 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
               </button>
             </div>
           )}
+          <div className="header-actions flex gap-3">
+            <button
+              onClick={() => onBulkUpdateAttendance(selectedDate, 'Present')}
+              className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
+              <Check size={16} />
+              All Present
+            </button>
+            <button
+              onClick={() => onBulkUpdateAttendance(selectedDate, 'Absent')}
+              className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              <X size={16} />
+              All Absent
+            </button>
+          </div>
         </div>
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -501,7 +517,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                     </td>
                   )}
                   <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {!data.isPartTime && canEditDate && (
+                    {!data.isPartTime && (
                       <div className="attendance-actions flex space-x-1 md:space-x-2">
                         <button
                           onClick={() => onUpdateAttendance(data.id, selectedDate, 'Present')}
@@ -510,6 +526,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                               ? 'bg-green-600 text-white' 
                               : 'bg-green-100 text-green-800 hover:bg-green-200'
                           } transition-colors`}
+                          disabled={!canEditDate}
                         >
                           Present
                         </button>
@@ -520,6 +537,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                               ? 'bg-yellow-600 text-white' 
                               : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                           } transition-colors`}
+                          disabled={!canEditDate}
                         >
                           Half Day
                         </button>
@@ -530,6 +548,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                               ? 'bg-red-600 text-white' 
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
                           } transition-colors`}
+                          disabled={!canEditDate}
                         >
                           Absent
                         </button>
@@ -541,13 +560,11 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                           })}
                           className="px-1 md:px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                           title="Change location for today"
+                          disabled={!canEditDate}
                         >
                           <MapPin size={12} />
                         </button>
                       </div>
-                    )}
-                    {!canEditDate && !data.isPartTime && (
-                      <span className="text-xs text-gray-400">View only</span>
                     )}
                   </td>
                 </tr>

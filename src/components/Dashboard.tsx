@@ -27,8 +27,8 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
   const partTimeAttendance = todayAttendance.filter(record => record.isPartTime && record.status === 'Present');
   const partTimeCount = partTimeAttendance.length;
 
-  // Calculate total present value including half days
-  const totalPresentValue = presentToday + (halfDayToday * 0.5);
+  // Calculate total present value including half days (corrected logic)
+  const totalPresentValue = presentToday + halfDayToday;
 
   const locations = [
     { 
@@ -106,7 +106,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Present Today</p>
-              <p className="text-2xl md:text-3xl font-bold text-green-600">{totalPresentValue}</p>
+              <p className="text-2xl md:text-3xl font-bold text-green-600">{presentToday + halfDayToday}</p>
               <p className="text-xs text-gray-500">{presentToday} Full, {halfDayToday} Half</p>
             </div>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -169,6 +169,11 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
               record.location === location.name
             );
 
+            // Group part-time by shift
+            const partTimeBoth = locationPartTime.filter(record => record.shift === 'Both');
+            const partTimeMorning = locationPartTime.filter(record => record.shift === 'Morning');
+            const partTimeEvening = locationPartTime.filter(record => record.shift === 'Evening');
+
             // Get full-time staff with detailed names (including shift info for half-day)
             const locationFullTimePresent = fullTimeAttendance.filter(record => {
               const staffMember = activeStaff.find(s => s.id === record.staffId);
@@ -194,8 +199,19 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
             return (
               <div key={location.name} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
                 <h3 className="text-base md:text-lg font-semibold text-blue-600 mb-4 text-center">
-                  {location.name} - Total Present Value: {locationTotalPresent}
-                  {locationPartTime.length > 0 && ` + ${locationPartTime.length} Part-Time`}
+                  {location.name} - Total Present: {locationFullTimePresent.length + locationFullTimeHalfDay.length}
+                  {locationPartTime.length > 0 && (
+                    <span className="text-sm">
+                      {' + Part-Time: '}{locationPartTime.length}
+                      {' ('}
+                      {partTimeBoth.length > 0 && `Both: ${partTimeBoth.length}`}
+                      {partTimeBoth.length > 0 && (partTimeMorning.length > 0 || partTimeEvening.length > 0) && ', '}
+                      {partTimeMorning.length > 0 && `Morning: ${partTimeMorning.length}`}
+                      {partTimeMorning.length > 0 && partTimeEvening.length > 0 && ', '}
+                      {partTimeEvening.length > 0 && `Evening: ${partTimeEvening.length}`}
+                      {')'}
+                    </span>
+                  )}
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
