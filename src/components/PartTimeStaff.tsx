@@ -138,7 +138,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   };
 
   const handleEdit = (record: Attendance) => {
-    setEditingAttendance(attendanceId);
+    setEditingAttendance(record.id);
     setEditData({
       name: record.staffName || '',
       location: record.location || 'Big Shop',
