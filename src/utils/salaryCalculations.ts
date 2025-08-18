@@ -218,7 +218,6 @@ export const calculateSalary = (
 
   // Calculate Sunday penalty - including half-day Sunday penalty
   let sundayPenalty = 0;
-  let adjustedIncentive = incentiveEarned;
 
   // Get Sunday half-day count from attendance
   const monthlyAttendance = attendance.filter(record => {
@@ -232,32 +231,19 @@ export const calculateSalary = (
   const sundayHalfDays = monthlyAttendance
     .filter(record => record.status === 'Half Day' && isSunday(record.date))
     .length;
+     
+  // Calculate total Sunday penalty
   if (sundayAbsents > 0) {
-    const totalPenalty = sundayAbsents * 500;
-    
-    if (adjustedIncentive >= totalPenalty) {
-      adjustedIncentive -= totalPenalty;
-      sundayPenalty = totalPenalty;
-    } else {
-      sundayPenalty = adjustedIncentive;
-      adjustedIncentive = 0;
-    }
+    sundayPenalty += sundayAbsents * 500;
   }
 
   // Add Sunday half-day penalty (₹250 per half-day)
   if (sundayHalfDays > 0) {
-    const halfDayPenalty = sundayHalfDays * 250;
-    
-    if (adjustedIncentive >= halfDayPenalty) {
-      adjustedIncentive -= halfDayPenalty;
-      sundayPenalty += halfDayPenalty;
-    } else {
-      sundayPenalty += adjustedIncentive;
-      adjustedIncentive = 0;
-    }
+    sundayPenalty += sundayHalfDays * 250;
   }
+  
   // Gross salary calculation
-  const grossSalary = roundToNearest10(basicEarned + adjustedIncentive + hraEarned);
+  const grossSalary = roundToNearest10(basicEarned + incentiveEarned + hraEarned);
 
   // Advance and deduction handling with carry-forward
   const oldAdv = advances?.oldAdvance || getPreviousMonthAdvance(staff.id, allAdvances, currentMonth, currentYear);
@@ -267,8 +253,8 @@ export const calculateSalary = (
   // Calculate new advance
   const newAdv = roundToNearest10(oldAdv + curAdv - deduction);
 
-  // Calculate net salary
-  const netSalary = Math.max(0, roundToNearest10(grossSalary - curAdv - deduction));
+  // Calculate net salary (deduct Sunday penalty from net salary)
+  const netSalary = Math.max(0, roundToNearest10(grossSalary - curAdv - deduction - sundayPenalty));
 
   return {
     staffId: staff.id,
@@ -282,7 +268,7 @@ export const calculateSalary = (
     curAdv: roundToNearest10(curAdv),
     deduction: roundToNearest10(deduction),
     basicEarned: roundToNearest10(basicEarned),
-    incentiveEarned: roundToNearest10(adjustedIncentive),
+    incentiveEarned: roundToNearest10(incentiveEarned),
     hraEarned: roundToNearest10(hraEarned),
     sundayPenalty: roundToNearest10(sundayPenalty),
     grossSalary,

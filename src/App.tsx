@@ -39,6 +39,28 @@ function App() {
 
   // Load all data from Supabase on app start
   useEffect(() => {
+    // Check for existing login session
+    const savedLogin = localStorage.getItem('staffManagementLogin');
+    if (savedLogin) {
+      try {
+        const loginData = JSON.parse(savedLogin);
+        const now = Date.now();
+        
+        // Check if session is still valid (30 days)
+        if (now - loginData.timestamp < loginData.expiresIn) {
+          setUser(loginData.user);
+        } else {
+          // Session expired, remove it
+          localStorage.removeItem('staffManagementLogin');
+        }
+      } catch (error) {
+        // Invalid session data, remove it
+        localStorage.removeItem('staffManagementLogin');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) {
       loadAllData();
     }
@@ -83,6 +105,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('staffManagementLogin');
     setUser(null);
     setActiveTab('Dashboard');
   };
@@ -164,7 +187,9 @@ function App() {
     shift?: 'Morning' | 'Evening' | 'Both',
     location?: string,
     salary?: number,
-    salaryOverride?: boolean
+    salaryOverride?: boolean,
+    arrivalTime?: string,
+    leavingTime?: string
   ) => {
     // Check if manager is trying to edit non-today attendance
     if (user?.role === 'manager') {
@@ -188,7 +213,9 @@ function App() {
       shift,
       location,
       salary,
-      salaryOverride
+      salaryOverride,
+      arrivalTime,
+      leavingTime
     };
 
     try {

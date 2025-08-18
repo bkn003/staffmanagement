@@ -100,7 +100,9 @@ export const attendanceService = {
       shift: attendance.shift,
       location: attendance.location,
       salary: attendance.salary,
-      salary_override: attendance.salaryOverride
+      salary_override: attendance.salaryOverride,
+      arrival_time: attendance.arrivalTime,
+      leaving_time: attendance.leavingTime
     };
   }
 };

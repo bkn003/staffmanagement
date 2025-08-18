@@ -28,22 +28,70 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     shift: string;
     status: string;
     salary: number;
+    arrivalTime: string;
+    leavingTime: string;
   }>({
     name: '',
     location: '',
     shift: '',
     status: '',
-    salary: 0
+    salary: 0,
+    arrivalTime: '',
+    leavingTime: ''
   });
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>(
     userLocation ? userLocation as any : 'All'
   );
+  const [reportType, setReportType] = useState<'monthly' | 'weekly' | 'dateRange'>('monthly');
+  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [dateRange, setDateRange] = useState({
+    start: new Date().toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
   const [newStaffData, setNewStaffData] = useState({
     name: '',
     location: (userLocation || 'Big Shop') as 'Big Shop' | 'Small Shop' | 'Godown',
-    shift: 'Morning' as 'Morning' | 'Evening' | 'Both'
+    shift: 'Morning' as 'Morning' | 'Evening' | 'Both',
+    arrivalTime: '',
+    leavingTime: ''
   });
+
+  // Get recent names for smart suggestions
+  const getRecentNames = () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    let recentAttendance = attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      return record.isPartTime && 
+             recordDate >= thirtyDaysAgo && 
+             record.staffName;
+    });
+
+    // Filter by location unless it's Sunday or "All" locations
+    const today = new Date();
+    const isSunday = today.getDay() === 0;
+    
+    if (!isSunday && userLocation) {
+      recentAttendance = recentAttendance.filter(record => record.location === userLocation);
+    }
+
+    // Get unique names
+    const uniqueNames = [...new Set(recentAttendance.map(record => record.staffName))];
+    return uniqueNames.slice(0, 10); // Limit to 10 suggestions
+  };
+
+  const recentNames = getRecentNames();
+
+  // Check for duplicates
+  const checkDuplicate = (name: string, location: string, shift: string) => {
+    return filteredTodayAttendance.some(record => 
+      record.staffName?.toLowerCase() === name.toLowerCase() && 
+      record.location === location && 
+      record.shift === shift
+    );
+  };
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -54,13 +102,57 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     return new Date(date.setDate(diff));
   };
 
+  // Get weeks in month (Monday to Sunday)
+  const getWeeksInMonth = (year: number, month: number) => {
+    const weeks = [];
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    let currentWeekStart = new Date(firstDay);
+    // Find the Monday of the first week
+    while (currentWeekStart.getDay() !== 1) {
+      currentWeekStart.setDate(currentWeekStart.getDate() - 1);
+    }
+    
+    while (currentWeekStart <= lastDay) {
+      const weekEnd = new Date(currentWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
+      
+      weeks.push({
+        start: currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        end: weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        startDate: new Date(currentWeekStart),
+        endDate: new Date(weekEnd)
+      });
+      
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    }
+    
+    return weeks;
+  };
+
   // Calculate part-time salaries for the selected month
   const calculatePartTimeSalaries = (): PartTimeSalaryDetail[] => {
     let monthlyAttendance = attendance.filter(record => {
+      if (!record.isPartTime) return false;
+      
       const recordDate = new Date(record.date);
-      return record.isPartTime && 
-             recordDate.getMonth() === selectedMonth && 
-             recordDate.getFullYear() === selectedYear;
+      
+      if (reportType === 'monthly') {
+        return recordDate.getMonth() === selectedMonth && 
+               recordDate.getFullYear() === selectedYear;
+      } else if (reportType === 'weekly') {
+        const weeks = getWeeksInMonth(selectedYear, selectedMonth);
+        const selectedWeekData = weeks[selectedWeek];
+        if (!selectedWeekData) return false;
+        return recordDate >= selectedWeekData.startDate && recordDate <= selectedWeekData.endDate;
+      } else if (reportType === 'dateRange') {
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+        return recordDate >= startDate && recordDate <= endDate;
+      }
+      
+      return false;
     });
 
     // Filter by user location if manager
@@ -110,6 +202,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
 
   const handleAddPartTimeAttendance = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicates
+    if (checkDuplicate(newStaffData.name, newStaffData.location, newStaffData.shift)) {
+      alert(`${newStaffData.name} is already added for ${newStaffData.location} - ${newStaffData.shift} shift today.`);
+      return;
+    }
+    
     const staffId = `pt_${Date.now()}`;
     
     // Calculate salary based on shift and day
@@ -127,12 +226,16 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       newStaffData.shift,
       newStaffData.location,
       defaultSalary,
-      false
+      false,
+      newStaffData.arrivalTime,
+      newStaffData.leavingTime
     );
     setNewStaffData({ 
       name: '', 
       location: (userLocation || 'Big Shop') as any, 
-      shift: 'Morning' 
+      shift: 'Morning',
+      arrivalTime: '',
+      leavingTime: ''
     });
     setShowAddForm(false);
   };
@@ -144,7 +247,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       location: record.location || 'Big Shop',
       shift: record.shift || 'Morning',
       status: record.status,
-      salary: record.salary || getPartTimeDailySalary(record.date)
+      salary: record.salary || getPartTimeDailySalary(record.date),
+      arrivalTime: record.arrivalTime || '',
+      leavingTime: record.leavingTime || ''
     });
   };
 
@@ -158,7 +263,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       editData.shift as 'Morning' | 'Evening' | 'Both',
       editData.location,
       editData.salary,
-      true
+      true,
+      editData.arrivalTime,
+      editData.leavingTime
     );
     setEditingAttendance(null);
   };
@@ -264,12 +371,18 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
+                list="recent-names"
                 type="text"
                 value={newStaffData.name}
                 onChange={(e) => setNewStaffData({ ...newStaffData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               />
+              <datalist id="recent-names">
+                {recentNames.map((name, index) => (
+                  <option key={index} value={name} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
@@ -295,6 +408,24 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 <option value="Evening">Evening (Half Day)</option>
                 <option value="Both">Both (Full Day)</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Time</label>
+              <input
+                type="time"
+                value={newStaffData.arrivalTime}
+                onChange={(e) => setNewStaffData({ ...newStaffData, arrivalTime: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Leaving Time</label>
+              <input
+                type="time"
+                value={newStaffData.leavingTime}
+                onChange={(e) => setNewStaffData({ ...newStaffData, leavingTime: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
             </div>
             <div className="flex items-end gap-2">
               <button
@@ -398,6 +529,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {record.shift}
+                        {(record.arrivalTime || record.leavingTime) && (
+                          <div className="text-xs mt-1">
+                            {record.arrivalTime && `In: ${new Date(`2000-01-01T${record.arrivalTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                            {record.arrivalTime && record.leavingTime && ' | '}
+                            {record.leavingTime && `Out: ${new Date(`2000-01-01T${record.leavingTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                          </div>
+                        )}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -443,6 +581,20 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                               <option value="Half Day">Half Day</option>
                               <option value="Absent">Absent</option>
                             </select>
+                            <input
+                              type="time"
+                              value={editData.arrivalTime}
+                              onChange={(e) => setEditData({...editData, arrivalTime: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                              placeholder="Arrival"
+                            />
+                            <input
+                              type="time"
+                              value={editData.leavingTime}
+                              onChange={(e) => setEditData({...editData, leavingTime: e.target.value})}
+                              className="px-2 py-1 text-xs border rounded"
+                              placeholder="Leaving"
+                            />
                           </div>
                           <div className="flex items-center gap-2">
                             <input
@@ -515,11 +667,53 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               <span className="text-sm text-gray-500">- {userLocation}</span>
             )}
           </h2>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value as 'monthly' | 'weekly' | 'dateRange')}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="weekly">Weekly</option>
+              <option value="dateRange">Date Range</option>
+            </select>
+            
+            {reportType === 'weekly' && (
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                {getWeeksInMonth(selectedYear, selectedMonth).map((week, index) => (
+                  <option key={index} value={index}>
+                    Week {index + 1}: {week.start} - {week.end}
+                  </option>
+                ))}
+              </select>
+            )}
+            
+            {reportType === 'dateRange' && (
+              <>
+                <input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </>
+            )}
+            
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={reportType === 'dateRange'}
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i} value={i}>
@@ -531,6 +725,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={reportType === 'dateRange'}
             >
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>

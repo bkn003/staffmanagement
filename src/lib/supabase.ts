@@ -39,6 +39,8 @@ export interface DatabaseAttendance {
   location?: string;
   salary?: number;
   salary_override?: boolean;
+  arrival_time?: string;
+  leaving_time?: string;
   created_at: string;
 }
 

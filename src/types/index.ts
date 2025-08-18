@@ -35,6 +35,8 @@ export interface Attendance {
   location?: string;
   salary?: number; // For part-time staff daily salary
   salaryOverride?: boolean; // If salary was manually edited
+  arrivalTime?: string; // For part-time staff
+  leavingTime?: string; // For part-time staff
 }
 
 export interface SalaryDetail {
