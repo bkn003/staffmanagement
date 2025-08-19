@@ -84,7 +84,9 @@ export const attendanceService = {
       shift: dbAttendance.shift,
       location: dbAttendance.location,
       salary: dbAttendance.salary,
-      salaryOverride: dbAttendance.salary_override
+      salaryOverride: dbAttendance.salary_override,
+      arrivalTime: dbAttendance.arrival_time,
+      leavingTime: dbAttendance.leaving_time
     };
   },
 
