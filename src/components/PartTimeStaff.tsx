@@ -43,7 +43,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>(
     userLocation ? userLocation as any : 'All'
   );
-  const [reportType, setReportType] = useState<'monthly' | 'weekly' | 'dateRange'>('monthly');
+  const [reportType, setReportType] = useState<'monthly' | 'weekly' | 'dateRange'>('weekly');
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [dateRange, setDateRange] = useState({
     start: new Date().toISOString().split('T')[0],
@@ -101,6 +101,28 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));
   };
+
+  // Set default week to current week on component mount
+  React.useEffect(() => {
+    if (reportType === 'weekly') {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
+      if (selectedMonth === currentMonth && selectedYear === currentYear) {
+        const weeks = getWeeksInMonth(currentYear, currentMonth);
+        const currentWeekIndex = weeks.findIndex(week => {
+          const weekStart = week.startDate;
+          const weekEnd = week.endDate;
+          return today >= weekStart && today <= weekEnd;
+        });
+        
+        if (currentWeekIndex !== -1) {
+          setSelectedWeek(currentWeekIndex);
+        }
+      }
+    }
+  }, [reportType, selectedMonth, selectedYear]);
 
   // Get weeks in month (Monday to Sunday)
   const getWeeksInMonth = (year: number, month: number) => {
@@ -217,6 +239,19 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       defaultSalary = Math.round(defaultSalary / 2); // Half day rate
     }
     
+    // Set default arrival time to current time if not provided
+    const defaultArrivalTime = newStaffData.arrivalTime || new Date().toTimeString().slice(0, 5);
+    
+    // Set default leaving time based on shift
+    let defaultLeavingTime = newStaffData.leavingTime;
+    if (!defaultLeavingTime) {
+      if (newStaffData.shift === 'Morning') {
+        defaultLeavingTime = '15:00'; // 3:00 PM
+      } else if (newStaffData.shift === 'Evening' || newStaffData.shift === 'Both') {
+        defaultLeavingTime = '21:30'; // 9:30 PM
+      }
+    }
+    
     onUpdateAttendance(
       staffId,
       selectedDate,
@@ -227,8 +262,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       newStaffData.location,
       defaultSalary,
       false,
-      newStaffData.arrivalTime,
-      newStaffData.leavingTime
+      defaultArrivalTime,
+      defaultLeavingTime
     );
     setNewStaffData({ 
       name: '', 
@@ -529,14 +564,14 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {record.shift}
-                        {(record.arrivalTime || record.leavingTime) && (
-                          <div className="text-xs mt-1">
-                            {record.arrivalTime && `In: ${new Date(`2000-01-01T${record.arrivalTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
-                            {record.arrivalTime && record.leavingTime && ' | '}
-                            {record.leavingTime && `Out: ${new Date(`2000-01-01T${record.leavingTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
-                          </div>
-                        )}
                       </span>
+                      {(record.arrivalTime || record.leavingTime) && (
+                        <div className="text-xs mt-1 text-gray-600">
+                          {record.arrivalTime && `In: ${new Date(`2000-01-01T${record.arrivalTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                          {record.arrivalTime && record.leavingTime && ' | '}
+                          {record.leavingTime && `Out: ${new Date(`2000-01-01T${record.leavingTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
@@ -796,6 +831,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                           <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
+                          <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Shift & Timing</th>
                           <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
                           <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
                         </tr>
@@ -809,6 +845,31 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               {salary.totalDays}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                              <div className="space-y-1">
+                                {salary.weeklyBreakdown.map(week => 
+                                  week.days.map(day => {
+                                    const dayAttendance = attendance.find(a => 
+                                      a.staffName === salary.staffName && 
+                                      a.date === day.date && 
+                                      a.isPartTime
+                                    );
+                                    return dayAttendance ? (
+                                      <div key={day.date} className="text-xs">
+                                        <span className="font-medium">{dayAttendance.shift}</span>
+                                        {(dayAttendance.arrivalTime || dayAttendance.leavingTime) && (
+                                          <div className="text-gray-500">
+                                            {dayAttendance.arrivalTime && `In: ${new Date(`2000-01-01T${dayAttendance.arrivalTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                                            {dayAttendance.arrivalTime && dayAttendance.leavingTime && ' | '}
+                                            {dayAttendance.leavingTime && `Out: ${new Date(`2000-01-01T${dayAttendance.leavingTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : null;
+                                  })
+                                ).flat().filter(Boolean)}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               <div className="space-y-1">

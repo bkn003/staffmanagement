@@ -84,6 +84,14 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       hra: staffMember.hra,
       joinedDate: staffMember.joinedDate
     });
+    
+    // Auto-scroll to the form at the top
+    setTimeout(() => {
+      const formElement = document.querySelector('.edit-staff-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const handleDelete = (staffMember: Staff) => {
@@ -137,7 +145,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
 
       {/* Add/Edit Form */}
       {(showAddForm || editingStaff) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="edit-staff-form bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
           <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">
             {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
           </h2>
@@ -290,6 +298,7 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
               salaryHikes={getStaffSalaryHikes(showSalaryHistory.id)}
               staffName={showSalaryHistory.name}
               currentSalary={showSalaryHistory.totalSalary}
+              staff={showSalaryHistory}
             />
             
             <div className="mt-6 flex justify-end">

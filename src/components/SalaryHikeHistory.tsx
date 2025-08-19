@@ -1,17 +1,19 @@
 import React from 'react';
 import { TrendingUp, Calendar, DollarSign } from 'lucide-react';
-import { SalaryHike } from '../types';
+import { SalaryHike, Staff } from '../types';
 
 interface SalaryHikeHistoryProps {
   salaryHikes: SalaryHike[];
   staffName: string;
   currentSalary: number;
+  staff?: Staff;
 }
 
 const SalaryHikeHistory: React.FC<SalaryHikeHistoryProps> = ({
   salaryHikes,
   staffName,
-  currentSalary
+  currentSalary,
+  staff
 }) => {
   const latestHike = salaryHikes[0]; // Assuming sorted by date desc
   
@@ -113,6 +115,105 @@ const SalaryHikeHistory: React.FC<SalaryHikeHistoryProps> = ({
                   </div>
                 </div>
               </div>
+              
+              {/* Component-wise breakdown */}
+              {staff && (
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                  <h5 className="text-sm font-semibold text-gray-700 mb-2">Component-wise Changes:</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-white p-2 rounded border">
+                      <span className="text-gray-600">Basic Salary:</span>
+                      <div className="font-medium">
+                        {index === salaryHikes.length - 1 ? (
+                          // First hike - compare with initial salary
+                          staff.initialSalary ? (
+                            <>
+                              ₹{Math.round(staff.initialSalary * 0.6).toLocaleString()} → ₹{staff.basicSalary.toLocaleString()}
+                              <span className="text-green-600 ml-1">
+                                (+₹{(staff.basicSalary - Math.round(staff.initialSalary * 0.6)).toLocaleString()})
+                              </span>
+                            </>
+                          ) : (
+                            `₹${staff.basicSalary.toLocaleString()}`
+                          )
+                        ) : (
+                          // Subsequent hikes - assume proportional increase
+                          <>
+                            ₹{Math.round((hike.oldSalary / hike.newSalary) * staff.basicSalary).toLocaleString()} → ₹{staff.basicSalary.toLocaleString()}
+                            <span className="text-green-600 ml-1">
+                              (+₹{(staff.basicSalary - Math.round((hike.oldSalary / hike.newSalary) * staff.basicSalary)).toLocaleString()})
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-white p-2 rounded border">
+                      <span className="text-gray-600">Incentive:</span>
+                      <div className="font-medium">
+                        {index === salaryHikes.length - 1 ? (
+                          staff.initialSalary ? (
+                            <>
+                              ₹{Math.round(staff.initialSalary * 0.33).toLocaleString()} → ₹{staff.incentive.toLocaleString()}
+                              {staff.incentive !== Math.round(staff.initialSalary * 0.33) ? (
+                                <span className="text-green-600 ml-1">
+                                  (+₹{(staff.incentive - Math.round(staff.initialSalary * 0.33)).toLocaleString()})
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 ml-1">(No Change)</span>
+                              )}
+                            </>
+                          ) : (
+                            `₹${staff.incentive.toLocaleString()}`
+                          )
+                        ) : (
+                          <>
+                            ₹{Math.round((hike.oldSalary / hike.newSalary) * staff.incentive).toLocaleString()} → ₹{staff.incentive.toLocaleString()}
+                            {staff.incentive !== Math.round((hike.oldSalary / hike.newSalary) * staff.incentive) ? (
+                              <span className="text-green-600 ml-1">
+                                (+₹{(staff.incentive - Math.round((hike.oldSalary / hike.newSalary) * staff.incentive)).toLocaleString()})
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 ml-1">(No Change)</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-white p-2 rounded border">
+                      <span className="text-gray-600">HRA:</span>
+                      <div className="font-medium">
+                        {index === salaryHikes.length - 1 ? (
+                          staff.initialSalary ? (
+                            <>
+                              ₹{Math.round(staff.initialSalary * 0.07).toLocaleString()} → ₹{staff.hra.toLocaleString()}
+                              {staff.hra !== Math.round(staff.initialSalary * 0.07) ? (
+                                <span className="text-green-600 ml-1">
+                                  (+₹{(staff.hra - Math.round(staff.initialSalary * 0.07)).toLocaleString()})
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 ml-1">(No Change)</span>
+                              )}
+                            </>
+                          ) : (
+                            `₹${staff.hra.toLocaleString()}`
+                          )
+                        ) : (
+                          <>
+                            ₹{Math.round((hike.oldSalary / hike.newSalary) * staff.hra).toLocaleString()} → ₹{staff.hra.toLocaleString()}
+                            {staff.hra !== Math.round((hike.oldSalary / hike.newSalary) * staff.hra) ? (
+                              <span className="text-green-600 ml-1">
+                                (+₹{(staff.hra - Math.round((hike.oldSalary / hike.newSalary) * staff.hra)).toLocaleString()})
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 ml-1">(No Change)</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {hike.reason && (
                 <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
