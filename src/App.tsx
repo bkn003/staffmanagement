@@ -200,6 +200,36 @@ function App() {
       }
     }
 
+    // Handle part-time staff deletion
+    if (isPartTime && status === 'Absent' && salary === 0) {
+      try {
+        // Find and delete the attendance record
+        const recordToDelete = attendance.find(a => 
+          a.staffId === staffId && 
+          a.date === date && 
+          a.isPartTime === true &&
+          a.staffName === staffName
+        );
+        
+        if (recordToDelete) {
+          // Remove from local state
+          setAttendance(prev => prev.filter(a => a.id !== recordToDelete.id));
+          
+          // Delete from database using Supabase
+          const { error } = await attendanceService.delete(recordToDelete.id);
+          if (error) {
+            console.error('Error deleting attendance record:', error);
+            // Restore the record if deletion failed
+            setAttendance(prev => [...prev, recordToDelete]);
+          }
+        }
+        return;
+      } catch (error) {
+        console.error('Error deleting part-time attendance:', error);
+        return;
+      }
+    }
+
     const attendanceValue = status === 'Present' ? 1 : status === 'Half Day' ? 0.5 : 0;
     
     const attendanceRecord = {
@@ -612,6 +642,7 @@ function App() {
           onClose={() => setSalaryHikeModal(null)}
           staffName={salaryHikeModal.staffName}
           currentSalary={salaryHikeModal.currentSalary}
+          staff={filteredStaff}
           newSalary={salaryHikeModal.newSalary}
           onConfirm={salaryHikeModal.onConfirm}
         />

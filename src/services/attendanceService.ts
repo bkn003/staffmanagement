@@ -71,6 +71,18 @@ export const attendanceService = {
     return data.map(this.mapFromDatabase);
   },
 
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting attendance:', error);
+      throw error;
+    }
+  },
+
   mapFromDatabase(dbAttendance: DatabaseAttendance): Attendance {
     return {
       id: dbAttendance.id,

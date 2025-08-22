@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add padding bottom for mobile bottom navigation */
+@media screen and (max-width: 768px) {
+  body {
+    padding-bottom: 80px;
+  }
+}
+
 /* Mobile Responsive Styles */
 @media screen and (max-width: 768px) {
   /* Prevent horizontal overflow */

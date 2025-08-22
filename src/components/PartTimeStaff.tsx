@@ -6,12 +6,14 @@ import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 
 interface PartTimeStaffProps {
   attendance: Attendance[];
+  staff: Staff[];
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
   userLocation?: string;
 }
 
 const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   attendance,
+  staff,
   onUpdateAttendance,
   userLocation
 }) => {
@@ -86,11 +88,20 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
 
   // Check for duplicates
   const checkDuplicate = (name: string, location: string, shift: string) => {
-    return filteredTodayAttendance.some(record => 
+    // Check for duplicate in part-time attendance
+    const partTimeDuplicate = filteredTodayAttendance.some(record => 
       record.staffName?.toLowerCase() === name.toLowerCase() && 
       record.location === location && 
       record.shift === shift
     );
+    
+    // Check for duplicate in full-time staff
+    const fullTimeDuplicate = staff.some(member => 
+      member.name.toLowerCase() === name.toLowerCase() && 
+      member.isActive
+    );
+    
+    return partTimeDuplicate || fullTimeDuplicate;
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -227,7 +238,16 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     
     // Check for duplicates
     if (checkDuplicate(newStaffData.name, newStaffData.location, newStaffData.shift)) {
-      alert(`${newStaffData.name} is already added for ${newStaffData.location} - ${newStaffData.shift} shift today.`);
+      const isFullTimeStaff = staff.some(member => 
+        member.name.toLowerCase() === newStaffData.name.toLowerCase() && 
+        member.isActive
+      );
+      
+      if (isFullTimeStaff) {
+        alert(`${newStaffData.name} is already a full-time staff member. Cannot add as part-time.`);
+      } else {
+        alert(`${newStaffData.name} is already added for ${newStaffData.location} - ${newStaffData.shift} shift today.`);
+      }
       return;
     }
     
@@ -317,6 +337,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     if (showDeleteModal) {
       const record = filteredTodayAttendance.find(r => r.id === showDeleteModal);
       if (record) {
+        // Actually delete the record by setting status to a special delete marker
+        // We'll handle this in the parent component
         onUpdateAttendance(
           record.staffId,
           record.date,
@@ -326,7 +348,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
           record.shift,
           record.location,
           0,
-          false
+          false,
+          '',
+          ''
         );
       }
       setShowDeleteModal(null);
@@ -359,40 +383,43 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Clock size={32} />
-            <h1 className="text-3xl font-bold">Part-Time Staff Management</h1>
+            <h1 className="text-xl md:text-3xl font-bold">Part-Time Staff Management</h1>
             {userLocation && (
               <span className="px-3 py-1 bg-white/20 rounded-full text-sm">
                 {userLocation}
               </span>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"
             >
               <FileSpreadsheet size={16} />
-              Export Excel
+              <span className="hidden sm:inline">Export Excel</span>
+              <span className="sm:hidden">Excel</span>
             </button>
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"
             >
               <Download size={16} />
-              Export PDF
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
             </button>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"
             >
               <Plus size={16} />
-              Add Part-Time Staff
+              <span className="hidden sm:inline">Add Part-Time Staff</span>
+              <span className="sm:hidden">Add Staff</span>
             </button>
           </div>
         </div>
@@ -400,9 +427,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
 
       {/* Add Part-Time Staff Form */}
       {showAddForm && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Add Part-Time Staff for Today</h2>
-          <form onSubmit={handleAddPartTimeAttendance} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">Add Part-Time Staff for Today</h2>
+          <form onSubmit={handleAddPartTimeAttendance} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
@@ -444,7 +471,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 <option value="Both">Both (Full Day)</option>
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2 lg:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Time</label>
               <input
                 type="time"
@@ -453,7 +480,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
-            <div>
+            <div className="md:col-span-2 lg:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Leaving Time</label>
               <input
                 type="time"
@@ -462,17 +489,17 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
-            <div className="flex items-end gap-2">
+            <div className="md:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-end gap-2">
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
                 Add Staff
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
@@ -482,9 +509,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       )}
 
       {/* Date Selection */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <label className="text-sm font-medium text-gray-700">Select Date</label>
             <input
               type="date"
@@ -499,7 +526,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             )}
           </div>
           {!userLocation && (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <label className="text-sm font-medium text-gray-700">Filter by Location</label>
               <select
                 value={locationFilter}
@@ -693,8 +720,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       </div>
 
       {/* Monthly Salary Report */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <DollarSign className="text-green-600" size={20} />
             Part-Time Staff Salary Report
@@ -702,11 +729,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               <span className="text-sm text-gray-500">- {userLocation}</span>
             )}
           </h2>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-2 md:gap-4">
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value as 'monthly' | 'weekly' | 'dateRange')}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             >
               <option value="monthly">Monthly</option>
               <option value="weekly">Weekly</option>
@@ -717,7 +744,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
               <select
                 value={selectedWeek}
                 onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               >
                 {getWeeksInMonth(selectedYear, selectedMonth).map((week, index) => (
                   <option key={index} value={index}>
@@ -733,13 +760,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                   type="date"
                   value={dateRange.start}
                   onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                 />
                 <input
                   type="date"
                   value={dateRange.end}
                   onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                 />
               </>
             )}
@@ -747,7 +774,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               disabled={reportType === 'dateRange'}
             >
               {Array.from({ length: 12 }, (_, i) => (
@@ -759,7 +786,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-2 md:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               disabled={reportType === 'dateRange'}
             >
               {Array.from({ length: 5 }, (_, i) => (
