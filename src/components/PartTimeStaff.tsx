@@ -360,7 +360,29 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   };
 
   const handleExportPDF = () => {
-    exportSalaryPDF([], partTimeSalaries, [], selectedMonth, selectedYear);
+    let weekData, dateRangeData;
+    
+    if (reportType === 'weekly') {
+      const weeks = getWeeksInMonth(selectedYear, selectedMonth);
+      const selectedWeekData = weeks[selectedWeek];
+      if (selectedWeekData) {
+        weekData = {
+          start: selectedWeekData.start,
+          end: selectedWeekData.end
+        };
+      }
+    } else if (reportType === 'dateRange') {
+      dateRangeData = dateRange;
+    }
+    
+    exportPartTimeSalaryPDF(
+      partTimeSalaries, 
+      selectedMonth, 
+      selectedYear, 
+      reportType,
+      weekData,
+      dateRangeData
+    );
   };
 
   // Group salaries by location for display

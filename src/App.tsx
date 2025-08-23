@@ -161,6 +161,11 @@ function App() {
             year: currentYear,
             oldAdvance: previousAdvance,
             currentAdvance: 0,
+          }
+        }
+      }
+    }
+    )
     // Check if manager is trying to edit non-today attendance
     if (user?.role === 'manager') {
       const today = new Date().toISOString().split('T')[0];
@@ -240,6 +245,7 @@ function App() {
       console.error('Error updating attendance:', error);
     }
   };
+  )
 
   // Delete part-time attendance record
   const deletePartTimeAttendance = async (attendanceId: string) => {

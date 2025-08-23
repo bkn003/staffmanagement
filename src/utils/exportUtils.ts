@@ -276,6 +276,82 @@ export const exportSalaryPDF = (
   doc.save(`salary-report-${new Date(0, month).toLocaleString('default', { month: 'long' })}-${year}.pdf`);
 };
 
+// Export part-time salary PDF with week dates and currency breakdown
+export const exportPartTimeSalaryPDF = (
+  partTimeSalaries: PartTimeSalaryDetail[],
+  month: number,
+  year: number,
+  reportType: 'weekly' | 'monthly' | 'dateRange',
+  weekData?: { start: string; end: string },
+  dateRange?: { start: string; end: string }
+) => {
+  const doc = new jsPDF('landscape');
+  
+  // Header
+  doc.setFontSize(20);
+  doc.text('Part-Time Staff Salary Report', 20, 20);
+  
+  // Date range header
+  doc.setFontSize(12);
+  if (reportType === 'weekly' && weekData) {
+    doc.text(`Week: ${weekData.start} - ${weekData.end}`, 20, 35);
+  } else if (reportType === 'dateRange' && dateRange) {
+    doc.text(`Date Range: ${new Date(dateRange.start).toLocaleDateString()} - ${new Date(dateRange.end).toLocaleDateString()}`, 20, 35);
+  } else {
+    doc.text(`Month: ${new Date(0, month).toLocaleString('default', { month: 'long' })} ${year}`, 20, 35);
+  }
+
+  let currentY = 50;
+
+  // Part-time staff salary data
+  if (partTimeSalaries.length > 0) {
+    const partTimeData = partTimeSalaries.map((detail, index) => [
+      index + 1,
+      detail.staffName,
+      detail.location,
+      detail.totalDays,
+      detail.totalEarnings
+    ]);
+
+    autoTable(doc, {
+      head: [['S.No', 'Name', 'Location', 'Days', 'Total Earnings']],
+      body: partTimeData,
+      startY: currentY,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [168, 85, 247] }
+    });
+    
+    currentY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Add total part-time earnings
+    const totalPartTimeEarnings = partTimeSalaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+    doc.setFontSize(12);
+    doc.text(`Total Part-Time Earnings: ${totalPartTimeEarnings}`, 20, currentY);
+    currentY += 15;
+    
+    // Calculate and display currency note breakdown
+    const noteBreakdown = calculateCurrencyNotes(totalPartTimeEarnings);
+    doc.setFontSize(10);
+    doc.text('Currency Note Breakdown:', 20, currentY);
+    currentY += 10;
+    
+    Object.entries(noteBreakdown).forEach(([denomination, count]) => {
+      if (count > 0) {
+        doc.text(`${denomination}s = ${count}`, 30, currentY);
+        currentY += 8;
+      }
+    });
+  }
+
+  const fileName = reportType === 'weekly' && weekData 
+    ? `part-time-salary-${weekData.start}-to-${weekData.end}.pdf`
+    : reportType === 'dateRange' && dateRange
+    ? `part-time-salary-${dateRange.start}-to-${dateRange.end}.pdf`
+    : `part-time-salary-${new Date(0, month).toLocaleString('default', { month: 'long' })}-${year}.pdf`;
+    
+  doc.save(fileName);
+};
+
 export const exportOldStaffPDF = (oldStaffRecords: OldStaffRecord[]) => {
   const doc = new jsPDF('landscape');
   
