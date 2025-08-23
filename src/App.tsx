@@ -161,36 +161,6 @@ function App() {
             year: currentYear,
             oldAdvance: previousAdvance,
             currentAdvance: 0,
-            deduction: 0,
-            newAdvance: previousAdvance,
-            notes: 'Auto-carried from previous month'
-          };
-          
-          try {
-            const savedAdvance = await advanceService.upsert(newAdvanceRecord);
-            setAdvances(prev => [...prev, savedAdvance]);
-          } catch (error) {
-            console.error('Error creating auto-advance:', error);
-          }
-        }
-      }
-    });
-  }, [staff, advances, user]);
-
-  // Update attendance for a specific staff member
-  const updateAttendance = async (
-    staffId: string, 
-    date: string, 
-    status: 'Present' | 'Half Day' | 'Absent',
-    isPartTime?: boolean,
-    staffName?: string,
-    shift?: 'Morning' | 'Evening' | 'Both',
-    location?: string,
-    salary?: number,
-    salaryOverride?: boolean,
-    arrivalTime?: string,
-    leavingTime?: string
-  ) => {
     // Check if manager is trying to edit non-today attendance
     if (user?.role === 'manager') {
       const today = new Date().toISOString().split('T')[0];
@@ -268,6 +238,24 @@ function App() {
       });
     } catch (error) {
       console.error('Error updating attendance:', error);
+    }
+  };
+
+  // Delete part-time attendance record
+  const deletePartTimeAttendance = async (attendanceId: string) => {
+    try {
+      // Remove from local state first
+      const recordToDelete = attendance.find(a => a.id === attendanceId);
+      setAttendance(prev => prev.filter(a => a.id !== attendanceId));
+      
+      // Delete from database
+      await attendanceService.delete(attendanceId);
+    } catch (error) {
+      console.error('Error deleting part-time attendance:', error);
+      // Restore the record if deletion failed
+      if (recordToDelete) {
+        setAttendance(prev => [...prev, recordToDelete]);
+      }
     }
   };
 
@@ -603,7 +591,9 @@ function App() {
         return (
           <PartTimeStaff 
             attendance={filteredAttendance}
+            staff={staff}
             onUpdateAttendance={updateAttendance}
+            onDeletePartTimeAttendance={deletePartTimeAttendance}
             userLocation={user?.location}
           />
         );

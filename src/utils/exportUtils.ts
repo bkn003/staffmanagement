@@ -12,6 +12,21 @@ const formatCurrencyForExport = (value: number): string => {
   return value.toString();
 };
 
+// Calculate currency note breakdown
+const calculateCurrencyNotes = (amount: number): Record<string, number> => {
+  const denominations = [500, 200, 100, 50, 20, 10];
+  const breakdown: Record<string, number> = {};
+  let remaining = Math.round(amount);
+  
+  denominations.forEach(denom => {
+    const count = Math.floor(remaining / denom);
+    breakdown[denom.toString()] = count;
+    remaining = remaining % denom;
+  });
+  
+  return breakdown;
+};
+
 export const exportAttendanceToExcel = (
   staff: Staff[],
   attendance: Attendance[],
@@ -176,53 +191,85 @@ export const exportSalaryPDF = (
   doc.setFontSize(12);
   doc.text(`Month: ${new Date(0, month).toLocaleString('default', { month: 'long' })} ${year}`, 20, 35);
 
-  // Full-time staff salary data
-  const fullTimeData = salaryDetails.map((detail, index) => {
-    const staffMember = staff.find(s => s.id === detail.staffId);
-    return [
-      index + 1,
-      staffMember?.name || 'Unknown',
-      detail.presentDays,
-      detail.halfDays,
-      detail.leaveDays,
-      detail.sundayAbsents,
-      formatCurrencyForExport(detail.oldAdv),
-      formatCurrencyForExport(detail.curAdv),
-      formatCurrencyForExport(detail.deduction),
-      formatCurrencyForExport(detail.basicEarned),
-      formatCurrencyForExport(detail.incentiveEarned),
-      formatCurrencyForExport(detail.hraEarned),
-      formatCurrencyForExport(detail.sundayPenalty),
-      formatCurrencyForExport(detail.grossSalary),
-      formatCurrencyForExport(detail.netSalary),
-      formatCurrencyForExport(detail.newAdv)
-    ];
-  });
+  let currentY = 45;
 
-  autoTable(doc, {
-    head: [['S.No', 'Name', 'Present', 'Half', 'Leave', 'Sun Abs', 'Old Adv', 'Cur Adv', 'Deduction', 'Basic', 'Incentive', 'HRA', 'Sun Penalty', 'Gross', 'Net Salary', 'New Adv']],
-    body: fullTimeData,
-    startY: 45,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [34, 197, 94] }
-  });
+  // Full-time staff salary data (only if there are full-time salaries)
+  if (salaryDetails.length > 0) {
+    const fullTimeData = salaryDetails.map((detail, index) => {
+      const staffMember = staff.find(s => s.id === detail.staffId);
+      return [
+        index + 1,
+        staffMember?.name || 'Unknown',
+        detail.presentDays,
+        detail.halfDays,
+        detail.leaveDays,
+        detail.sundayAbsents,
+        formatCurrencyForExport(detail.oldAdv),
+        formatCurrencyForExport(detail.curAdv),
+        formatCurrencyForExport(detail.deduction),
+        formatCurrencyForExport(detail.basicEarned),
+        formatCurrencyForExport(detail.incentiveEarned),
+        formatCurrencyForExport(detail.hraEarned),
+        formatCurrencyForExport(detail.sundayPenalty),
+        formatCurrencyForExport(detail.grossSalary),
+        formatCurrencyForExport(detail.netSalary),
+        formatCurrencyForExport(detail.newAdv)
+      ];
+    });
+
+    autoTable(doc, {
+      head: [['S.No', 'Name', 'Present', 'Half', 'Leave', 'Sun Abs', 'Old Adv', 'Cur Adv', 'Deduction', 'Basic', 'Incentive', 'HRA', 'Sun Penalty', 'Gross', 'Net Salary', 'New Adv']],
+      body: fullTimeData,
+      startY: currentY,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [34, 197, 94] }
+    });
+    
+    currentY = (doc as any).lastAutoTable.finalY + 20;
+  }
 
   // Part-time staff salary data
   if (partTimeSalaries.length > 0) {
+    // Add part-time section header
+    doc.setFontSize(14);
+    doc.text('Part-Time Staff Salary Report', 20, currentY);
+    currentY += 15;
+    
     const partTimeData = partTimeSalaries.map((detail, index) => [
       index + 1,
       detail.staffName,
       detail.location,
       detail.totalDays,
-      formatCurrencyForExport(detail.totalEarnings)
+      detail.totalEarnings
     ]);
 
     autoTable(doc, {
       head: [['S.No', 'Name', 'Location', 'Days', 'Total Earnings']],
       body: partTimeData,
-      startY: (doc as any).lastAutoTable.finalY + 20,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [168, 85, 247] }
+    });
+    
+    currentY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Add total part-time earnings
+    const totalPartTimeEarnings = partTimeSalaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+    doc.setFontSize(12);
+    doc.text(`Total Part-Time Earnings: ${totalPartTimeEarnings}`, 20, currentY);
+    currentY += 15;
+    
+    // Calculate and display currency note breakdown
+    const noteBreakdown = calculateCurrencyNotes(totalPartTimeEarnings);
+    doc.setFontSize(10);
+    doc.text('Currency Note Breakdown:', 20, currentY);
+    currentY += 10;
+    
+    Object.entries(noteBreakdown).forEach(([denomination, count]) => {
+      if (count > 0) {
+        doc.text(`${denomination}s = ${count}`, 30, currentY);
+        currentY += 8;
+      }
     });
   }
 
@@ -253,8 +300,8 @@ export const exportOldStaffPDF = (oldStaffRecords: OldStaffRecord[]) => {
       record.type,
       record.experience,
       tenure,
-      formatCurrencyForExport(record.totalSalary),
-      formatCurrencyForExport(record.totalAdvanceOutstanding),
+      record.totalSalary,
+      record.totalAdvanceOutstanding,
       record.reason
     ];
   });

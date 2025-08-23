@@ -7,14 +7,18 @@ import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 interface PartTimeStaffProps {
   attendance: Attendance[];
   staff: Staff[];
+  staff: Staff[];
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
+  onDeletePartTimeAttendance: (attendanceId: string) => void;
   userLocation?: string;
 }
 
 const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   attendance,
   staff,
+  staff,
   onUpdateAttendance,
+  onDeletePartTimeAttendance,
   userLocation
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -101,7 +105,12 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       member.isActive
     );
     
-    return partTimeDuplicate || fullTimeDuplicate;
+    // Check for duplicate name across all part-time staff for today (any location/shift)
+    const partTimeNameDuplicate = filteredTodayAttendance.some(record => 
+      record.staffName?.toLowerCase() === name.toLowerCase()
+    );
+    
+    return partTimeNameDuplicate || fullTimeDuplicate;
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -237,7 +246,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     e.preventDefault();
     
     // Check for duplicates
-    if (checkDuplicate(newStaffData.name, newStaffData.location, newStaffData.shift)) {
+    const isDuplicate = checkDuplicate(newStaffData.name, newStaffData.location, newStaffData.shift);
+    
+    if (isDuplicate) {
       const isFullTimeStaff = staff.some(member => 
         member.name.toLowerCase() === newStaffData.name.toLowerCase() && 
         member.isActive
@@ -246,7 +257,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       if (isFullTimeStaff) {
         alert(`${newStaffData.name} is already a full-time staff member. Cannot add as part-time.`);
       } else {
-        alert(`${newStaffData.name} is already added for ${newStaffData.location} - ${newStaffData.shift} shift today.`);
+        alert(`${newStaffData.name} is already added as part-time staff today.`);
       }
       return;
     }
@@ -337,21 +348,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     if (showDeleteModal) {
       const record = filteredTodayAttendance.find(r => r.id === showDeleteModal);
       if (record) {
-        // Actually delete the record by setting status to a special delete marker
-        // We'll handle this in the parent component
-        onUpdateAttendance(
-          record.staffId,
-          record.date,
-          'Absent',
-          true,
-          record.staffName,
-          record.shift,
-          record.location,
-          0,
-          false,
-          '',
-          ''
-        );
+        // Call the delete function from parent
+        onDeletePartTimeAttendance(record.id);
       }
       setShowDeleteModal(null);
     }
