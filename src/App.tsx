@@ -150,6 +150,10 @@ function App() {
         adv.staffId === member.id && 
         adv.month === currentMonth && 
         adv.year === currentYear
+      );
+    });
+  }, [staff, advances, user]);
+
   const updateAttendance = async (
     staffId: string,
     date: string,
@@ -242,7 +246,6 @@ function App() {
       console.error('Error updating attendance:', error);
     }
   };
-  )
 
   // Delete part-time attendance record
   const deletePartTimeAttendance = async (attendanceId: string) => {
