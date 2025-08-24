@@ -150,22 +150,19 @@ function App() {
         adv.staffId === member.id && 
         adv.month === currentMonth && 
         adv.year === currentYear
-      );
-      
-      if (!existingAdvance) {
-        const previousAdvance = await advanceService.getPreviousMonthAdvance(member.id, currentMonth, currentYear);
-        if (previousAdvance > 0) {
-          const newAdvanceRecord = {
-            staffId: member.id,
-            month: currentMonth,
-            year: currentYear,
-            oldAdvance: previousAdvance,
-            currentAdvance: 0,
-          }
-        }
-      }
-    }
-    )
+  const updateAttendance = async (
+    staffId: string,
+    date: string,
+    status: 'Present' | 'Half Day' | 'Absent',
+    isPartTime?: boolean,
+    staffName?: string,
+    shift?: string,
+    location?: string,
+    salary?: number,
+    salaryOverride?: boolean,
+    arrivalTime?: string,
+    leavingTime?: string
+  ) => {
     // Check if manager is trying to edit non-today attendance
     if (user?.role === 'manager') {
       const today = new Date().toISOString().split('T')[0];
