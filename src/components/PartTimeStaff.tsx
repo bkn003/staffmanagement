@@ -7,7 +7,6 @@ import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
 interface PartTimeStaffProps {
   attendance: Attendance[];
   staff: Staff[];
-  staff: Staff[];
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
   onDeletePartTimeAttendance: (attendanceId: string) => void;
   userLocation?: string;
@@ -15,7 +14,6 @@ interface PartTimeStaffProps {
 
 const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   attendance,
-  staff,
   staff,
   onUpdateAttendance,
   onDeletePartTimeAttendance,

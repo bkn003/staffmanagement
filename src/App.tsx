@@ -155,6 +155,9 @@ function App() {
   }, [staff, advances, user]);
 
   const updateAttendance = async (
+  }, [staff, advances, user]);
+
+  const updateAttendance = async (
     staffId: string,
     date: string,
     status: 'Present' | 'Half Day' | 'Absent',
