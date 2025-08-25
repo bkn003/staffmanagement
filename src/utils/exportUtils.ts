@@ -376,8 +376,8 @@ export const exportOldStaffPDF = (oldStaffRecords: OldStaffRecord[]) => {
       record.type,
       record.experience,
       tenure,
-      record.totalSalary,
-      record.totalAdvanceOutstanding,
+      record.totalSalary.toLocaleString(),
+      record.totalAdvanceOutstanding.toLocaleString(),
       record.reason
     ];
   });

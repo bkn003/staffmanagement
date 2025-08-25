@@ -299,7 +299,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     setNewStaffData({ 
       name: '', 
       location: (userLocation || 'Big Shop') as any, 
-      shift: 'Morning',
+      shift: (new Date().getDay() === 0 ? 'Both' : 'Morning') as 'Morning' | 'Evening' | 'Both',
       arrivalTime: '',
       leavingTime: ''
     });
