@@ -56,7 +56,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const [newStaffData, setNewStaffData] = useState({
     name: '',
     location: (userLocation || 'Big Shop') as 'Big Shop' | 'Small Shop' | 'Godown',
-    shift: 'Morning' as 'Morning' | 'Evening' | 'Both',
+    shift: (new Date().getDay() === 0 ? 'Both' : 'Morning') as 'Morning' | 'Evening' | 'Both',
     arrivalTime: '',
     leavingTime: ''
   });
@@ -89,9 +89,10 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const recentNames = getRecentNames();
 
   // Check for duplicates
-  const checkDuplicate = (name: string, location: string, shift: string) => {
+  const checkDuplicate = (name: string, location: string, shift: string, excludeId?: string) => {
     // Check for duplicate in part-time attendance
     const partTimeDuplicate = filteredTodayAttendance.some(record => 
+      record.id !== excludeId &&
       record.staffName?.toLowerCase() === name.toLowerCase() && 
       record.location === location && 
       record.shift === shift
@@ -105,6 +106,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     
     // Check for duplicate name across all part-time staff for today (any location/shift)
     const partTimeNameDuplicate = filteredTodayAttendance.some(record => 
+      record.id !== excludeId &&
       record.staffName?.toLowerCase() === name.toLowerCase()
     );
     
@@ -318,6 +320,23 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   };
 
   const handleSave = (attendanceRecord: Attendance) => {
+    // Check for duplicates on edit
+    const isDuplicate = checkDuplicate(editData.name, editData.location, editData.shift, attendanceRecord.id);
+    
+    if (isDuplicate) {
+      const isFullTimeStaff = staff.some(member => 
+        member.name.toLowerCase() === editData.name.toLowerCase() && 
+        member.isActive
+      );
+      
+      if (isFullTimeStaff) {
+        alert(`${editData.name} is already a full-time staff member. Cannot use as part-time.`);
+      } else {
+        alert(`${editData.name} is already added as part-time staff today.`);
+      }
+      return;
+    }
+
     onUpdateAttendance(
       attendanceRecord.staffId,
       attendanceRecord.date,
