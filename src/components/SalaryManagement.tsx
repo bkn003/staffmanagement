@@ -179,36 +179,39 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
           <DollarSign className="text-green-600" size={32} />
-          Enhanced Salary Management
+          <span className="hidden md:inline">Enhanced Salary Management</span>
+          <span className="md:hidden">Salary Management</span>
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button 
             onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
           >
             <FileSpreadsheet size={16} />
-            Export Excel
+            <span className="hidden sm:inline">Export Excel</span>
+            <span className="sm:hidden">Excel</span>
           </button>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
             <Download size={16} />
-            Export PDF
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
           </button>
         </div>
       </div>
 
       {/* Month/Year Selection */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
-        <div className="flex items-center justify-center gap-4">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i} value={i}>
@@ -222,7 +225,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -235,15 +238,15 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Active Staff</p>
-              <p className="text-3xl font-bold text-blue-600">{activeStaff.length}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600">{activeStaff.length}</p>
               <p className="text-xs text-gray-500">Active employees</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Users className="text-blue-600" size={24} />
             </div>
           </div>
