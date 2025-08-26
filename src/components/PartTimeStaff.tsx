@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Attendance, PartTimeSalaryDetail } from '../types';
 import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
-import { exportSalaryToExcel, exportSalaryPDF } from '../utils/exportUtils';
+import { exportSalaryToExcel, exportSalaryPDF, exportPartTimeSalaryPDF } from '../utils/exportUtils';
 
 interface PartTimeStaffProps {
   attendance: Attendance[];
