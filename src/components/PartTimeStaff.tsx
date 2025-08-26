@@ -373,7 +373,31 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   };
 
   const handleExportExcel = () => {
-    exportSalaryToExcel([], partTimeSalaries, [], selectedMonth, selectedYear);
+    let weekData, dateRangeData;
+    
+    if (reportType === 'weekly') {
+      const weeks = getWeeksInMonth(selectedYear, selectedMonth);
+      const selectedWeekData = weeks[selectedWeek];
+      if (selectedWeekData) {
+        weekData = {
+          start: selectedWeekData.start,
+          end: selectedWeekData.end
+        };
+      }
+    } else if (reportType === 'dateRange') {
+      dateRangeData = dateRange;
+    }
+    
+    exportSalaryToExcel(
+      [], 
+      partTimeSalaries, 
+      [], 
+      selectedMonth, 
+      selectedYear,
+      reportType,
+      weekData,
+      dateRangeData
+    );
   };
 
   const handleExportPDF = () => {
@@ -934,13 +958,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                                   })
                                 ).flat().filter(Boolean)}
                               </div>
-                                <span className="font-medium">
-                                  {dayAttendance.shift} ({new Date(day.date).toLocaleDateString('en-GB', { 
-                                    day: '2-digit', 
-                                    month: '2-digit', 
-                                    year: '2-digit' 
-                                  })})
-                                </span>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               <div className="space-y-1">
                                 {salary.weeklyBreakdown.map(week => (
