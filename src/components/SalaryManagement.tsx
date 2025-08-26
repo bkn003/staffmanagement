@@ -256,12 +256,12 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Full-Time Salary</p>
-              <p className="text-3xl font-bold text-green-600">₹{totalSalaryDisbursed.toLocaleString()}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-600">₹{totalSalaryDisbursed.toLocaleString()}</p>
               <p className="text-xs text-gray-500">
                 For {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
               </p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <DollarSign className="text-green-600" size={24} />
             </div>
           </div>
