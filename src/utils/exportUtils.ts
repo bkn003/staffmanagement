@@ -68,7 +68,10 @@ export const exportSalaryToExcel = (
   partTimeSalaries: PartTimeSalaryDetail[],
   staff: Staff[],
   month: number,
-  year: number
+  year: number,
+  reportType?: 'monthly' | 'weekly' | 'dateRange',
+  weekData?: { start: string; end: string },
+  dateRange?: { start: string; end: string }
 ) => {
   // Full-time staff data
   const fullTimeData = salaryDetails.map((detail, index) => {
@@ -94,28 +97,147 @@ export const exportSalaryToExcel = (
   });
 
   // Part-time staff data
-  const partTimeData = partTimeSalaries.map((detail, index) => ({
-    'S.No': index + 1,
-    'Name': detail.staffName,
-    'Location': detail.location,
-    'Total Days': detail.totalDays,
-    'Total Earnings': formatNumberForExport(detail.totalEarnings)
-  }));
+  const partTimeData = [];
+  let locationSubtotals: Record<string, number> = {};
+  
+  // Group by location
+  const salariesByLocation = partTimeSalaries.reduce((acc, salary) => {
+    if (!acc[salary.location]) {
+      acc[salary.location] = [];
+    }
+    acc[salary.location].push(salary);
+    return acc;
+  }, {} as Record<string, PartTimeSalaryDetail[]>);
+  
+  let serialNo = 1;
+  Object.entries(salariesByLocation).forEach(([location, salaries]) => {
+    // Add location header
+    partTimeData.push({
+      'S.No': '',
+      'Name': `${location} - ${salaries.length} staff`,
+      'Location': '',
+      'Total Days': '',
+      'Total Earnings': ''
+    });
+    
+    // Add staff data for this location
+    salaries.forEach(salary => {
+      partTimeData.push({
+        'S.No': serialNo++,
+        'Name': salary.staffName,
+        'Location': salary.location,
+        'Total Days': salary.totalDays,
+        'Total Earnings': formatNumberForExport(salary.totalEarnings)
+      });
+    });
+    
+    // Calculate location subtotal
+    const locationTotal = salaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+    locationSubtotals[location] = locationTotal;
+    
+    // Add subtotal row
+    partTimeData.push({
+      'S.No': '',
+      'Name': `${location} Subtotal`,
+      'Location': '',
+      'Total Days': salaries.reduce((sum, salary) => sum + salary.totalDays, 0),
+      'Total Earnings': formatNumberForExport(locationTotal)
+    });
+    
+    // Add empty row for spacing
+    partTimeData.push({
+      'S.No': '',
+      'Name': '',
+      'Location': '',
+      'Total Days': '',
+      'Total Earnings': ''
+    });
+  });
+  
+  // Add grand total
+  const grandTotal = partTimeSalaries.reduce((sum, salary) => sum + salary.totalEarnings, 0);
+  partTimeData.push({
+    'S.No': '',
+    'Name': 'GRAND TOTAL',
+    'Location': '',
+    'Total Days': partTimeSalaries.reduce((sum, salary) => sum + salary.totalDays, 0),
+    'Total Earnings': formatNumberForExport(grandTotal)
+  });
 
   const wb = XLSX.utils.book_new();
   
   if (fullTimeData.length > 0) {
     const ws1 = XLSX.utils.json_to_sheet(fullTimeData);
+    
+    // Auto-fit columns
+    const range = XLSX.utils.decode_range(ws1['!ref'] || 'A1');
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      let maxWidth = 10;
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws1[cellAddress];
+        if (cell && cell.v) {
+          const cellLength = cell.v.toString().length;
+          maxWidth = Math.max(maxWidth, cellLength);
+        }
+      }
+      colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+    }
+    ws1['!cols'] = colWidths;
+    
     XLSX.utils.book_append_sheet(wb, ws1, 'Full-Time Salary');
   }
   
   if (partTimeData.length > 0) {
     const ws2 = XLSX.utils.json_to_sheet(partTimeData);
+    
+    // Add header with week/date range info
+    let headerText = '';
+    if (reportType === 'weekly' && weekData) {
+      headerText = `Week: ${weekData.start} - ${weekData.end}`;
+    } else if (reportType === 'dateRange' && dateRange) {
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      headerText = `Period: ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    } else {
+      headerText = `Month: ${new Date(0, month).toLocaleString('default', { month: 'long' })} ${year}`;
+    }
+    
+    // Insert header row
+    XLSX.utils.sheet_add_aoa(ws2, [[headerText]], { origin: 'A1' });
+    
+    // Auto-fit columns
+    const range = XLSX.utils.decode_range(ws2['!ref'] || 'A1');
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      let maxWidth = 10;
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws2[cellAddress];
+        if (cell && cell.v) {
+          const cellLength = cell.v.toString().length;
+          maxWidth = Math.max(maxWidth, cellLength);
+        }
+      }
+      colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+    }
+    ws2['!cols'] = colWidths;
+    
     XLSX.utils.book_append_sheet(wb, ws2, 'Part-Time Salary');
   }
 
-  const monthName = new Date(0, month).toLocaleString('default', { month: 'long' });
-  XLSX.writeFile(wb, `salary-report-${monthName}-${year}.xlsx`);
+  let fileName = '';
+  if (reportType === 'weekly' && weekData) {
+    fileName = `part-time-salary-${weekData.start.replace(/\s/g, '')}-to-${weekData.end.replace(/\s/g, '')}.xlsx`;
+  } else if (reportType === 'dateRange' && dateRange) {
+    fileName = `part-time-salary-${dateRange.start}-to-${dateRange.end}.xlsx`;
+  } else {
+    const monthName = new Date(0, month).toLocaleString('default', { month: 'long' });
+    fileName = `salary-report-${monthName}-${year}.xlsx`;
+  }
+  
+  XLSX.writeFile(wb, fileName);
 };
 
 export const exportAttendancePDF = (

@@ -256,12 +256,12 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Full-Time Salary</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-600">₹{totalSalaryDisbursed.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-green-600">₹{totalSalaryDisbursed.toLocaleString()}</p>
               <p className="text-xs text-gray-500">
                 For {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
               </p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <DollarSign className="text-green-600" size={24} />
             </div>
           </div>
@@ -312,28 +312,29 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-800">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">
                 Full-Time Salary Details - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
                 All values rounded to nearest ₹10. Sunday absents incur ₹500 penalty.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {editMode ? (
                 <>
                   <button
                     onClick={handleSaveAll}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 text-sm sm:text-base"
                   >
                     <Save size={16} />
-                    {saving ? 'Saving...' : 'Save All'}
+                    <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save All'}</span>
+                    <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
                   </button>
                   <button
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400"
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400 text-sm sm:text-base"
                   >
                     <X size={16} />
                     Cancel
@@ -342,10 +343,11 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
               ) : (
                 <button
                   onClick={handleEnableEditAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                 >
                   <Edit2 size={16} />
-                  Enable Edit for All
+                  <span className="hidden sm:inline">Enable Edit for All</span>
+                  <span className="sm:hidden">Edit All</span>
                 </button>
               )}
             </div>
