@@ -10,12 +10,14 @@ interface PartTimeStaffProps {
     staffId: string,
     date: string,
     status: 'Present' | 'Half Day' | 'Absent',
-    attendanceValue: number,
     isPartTime: boolean,
+    staffName?: string,
     shift?: string,
+    location?: string,
+    salary?: number,
+    salaryOverride?: boolean,
     arrivalTime?: string,
-    leavingTime?: string,
-    salary?: number
+    leavingTime?: string
   ) => void;
   onDeletePartTimeAttendance: (attendanceId: string) => void;
   userLocation: string;
@@ -68,18 +70,18 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       return;
     }
 
-    const attendanceValue = newStaff.shift === 'Both (Full Day)' ? 1.0 : 0.5;
-    
     await onUpdateAttendance(
       newStaff.name,
       selectedDate,
       'Present',
-      attendanceValue,
       true,
+      newStaff.name,
+      newStaff.location,
+      newStaff.salary,
+      false,
       newStaff.shift,
       newStaff.arrivalTime,
-      newStaff.leavingTime,
-      newStaff.salary
+      newStaff.leavingTime
     );
 
     setNewStaff({
@@ -106,18 +108,18 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       return;
     }
 
-    const attendanceValue = newStaff.shift === 'Both (Full Day)' ? 1.0 : 0.5;
-    
     await onUpdateAttendance(
       editingAttendance.staff_id,
       selectedDate,
       'Present',
-      attendanceValue,
       true,
+      newStaff.name,
+      newStaff.location,
+      newStaff.salary,
+      false,
       newStaff.shift,
       newStaff.arrivalTime,
-      newStaff.leavingTime,
-      newStaff.salary
+      newStaff.leavingTime
     );
 
     setEditingAttendance(null);
