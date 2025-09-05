@@ -70,12 +70,19 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       return;
     }
 
+    // Generate unique ID for part-time staff
+    const staffId = crypto.randomUUID();
+    
+    // Extract base shift name (e.g., 'Morning' from 'Morning (Half Day)')
+    const baseShift = newStaff.shift.split(' ')[0];
+
     await onUpdateAttendance(
-      newStaff.name,
+      staffId,
       selectedDate,
       'Present',
       true,
       newStaff.name,
+      baseShift,
       newStaff.location,
       newStaff.salary,
       false,
@@ -108,12 +115,16 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
       return;
     }
 
+    // Extract base shift name (e.g., 'Morning' from 'Morning (Half Day)')
+    const baseShift = newStaff.shift.split(' ')[0];
+
     await onUpdateAttendance(
       editingAttendance.staff_id,
       selectedDate,
       'Present',
       true,
       newStaff.name,
+      baseShift,
       newStaff.location,
       newStaff.salary,
       false,
