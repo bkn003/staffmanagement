@@ -179,39 +179,36 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
           <DollarSign className="text-green-600" size={32} />
-          <span className="hidden md:inline">Enhanced Salary Management</span>
-          <span className="md:hidden">Salary Management</span>
+          Enhanced Salary Management
         </h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="flex gap-3">
           <button 
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <FileSpreadsheet size={16} />
-            <span className="hidden sm:inline">Export Excel</span>
-            <span className="sm:hidden">Excel</span>
+            Export Excel
           </button>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Download size={16} />
-            <span className="hidden sm:inline">Export PDF</span>
-            <span className="sm:hidden">PDF</span>
+            Export PDF
           </button>
         </div>
       </div>
 
       {/* Month/Year Selection */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
+        <div className="flex items-center justify-center gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i} value={i}>
@@ -225,7 +222,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -238,15 +235,15 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Active Staff</p>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-600">{activeStaff.length}</p>
+              <p className="text-3xl font-bold text-blue-600">{activeStaff.length}</p>
               <p className="text-xs text-gray-500">Active employees</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Users className="text-blue-600" size={24} />
             </div>
           </div>
@@ -312,29 +309,28 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+              <h2 className="text-xl font-bold text-gray-800">
                 Full-Time Salary Details - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
                 All values rounded to nearest ₹10. Sunday absents incur ₹500 penalty.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
               {editMode ? (
                 <>
                   <button
                     onClick={handleSaveAll}
                     disabled={saving}
-                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 text-sm sm:text-base"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
                   >
                     <Save size={16} />
-                    <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save All'}</span>
-                    <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
+                    {saving ? 'Saving...' : 'Save All'}
                   </button>
                   <button
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400 text-sm sm:text-base"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400"
                   >
                     <X size={16} />
                     Cancel
@@ -343,11 +339,10 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
               ) : (
                 <button
                   onClick={handleEnableEditAll}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Edit2 size={16} />
-                  <span className="hidden sm:inline">Enable Edit for All</span>
-                  <span className="sm:hidden">Edit All</span>
+                  Enable Edit for All
                 </button>
               )}
             </div>
