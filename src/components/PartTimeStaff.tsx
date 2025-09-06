@@ -10,12 +10,14 @@ interface PartTimeStaffProps {
     staffId: string,
     date: string,
     status: 'Present' | 'Half Day' | 'Absent',
-    attendanceValue: number,
     isPartTime: boolean,
+    staffName?: string,
     shift?: string,
+    location?: string,
+    salary?: number,
+    salaryOverride?: boolean,
     arrivalTime?: string,
-    leavingTime?: string,
-    salary?: number
+    leavingTime?: string
   ) => void;
   onDeletePartTimeAttendance: (attendanceId: string) => void;
   userLocation: string;
@@ -52,7 +54,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     }
   }, [editingAttendance]);
 
-  const partTimeAttendance = attendance.filter(att => att.is_part_time);
+  const partTimeAttendance = attendance.filter(att => att.isPartTime === true);
   const todayAttendance = partTimeAttendance.filter(att => att.date === selectedDate);
 
   const handleAddStaff = async () => {
@@ -61,25 +63,32 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     // Check for duplicate names across all locations for the selected date
     const existingNames = partTimeAttendance
       .filter(att => att.date === selectedDate)
-      .map(att => att.staff_name?.toLowerCase().trim());
+      .map(att => att.staffName?.toLowerCase().trim());
     
     if (existingNames.includes(newStaff.name.toLowerCase().trim())) {
       alert('A staff member with this name already exists for this date. Please use a different name.');
       return;
     }
 
-    const attendanceValue = newStaff.shift === 'Both (Full Day)' ? 1.0 : 0.5;
+    // Generate unique ID for part-time staff
+    const staffId = crypto.randomUUID();
     
+    // Extract base shift name (e.g., 'Morning' from 'Morning (Half Day)')
+    const baseShift = newStaff.shift.split(' ')[0];
+
     await onUpdateAttendance(
-      newStaff.name,
+      staffId,
       selectedDate,
       'Present',
-      attendanceValue,
       true,
+      newStaff.name,
+      baseShift,
+      newStaff.location,
+      newStaff.salary,
+      false,
       newStaff.shift,
       newStaff.arrivalTime,
-      newStaff.leavingTime,
-      newStaff.salary
+      newStaff.leavingTime
     );
 
     setNewStaff({
@@ -99,25 +108,29 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     // Check for duplicate names across all locations for the selected date (excluding current record)
     const existingNames = partTimeAttendance
       .filter(att => att.date === selectedDate && att.id !== editingAttendance.id)
-      .map(att => att.staff_name?.toLowerCase().trim());
+      .map(att => att.staffName?.toLowerCase().trim());
     
     if (existingNames.includes(newStaff.name.toLowerCase().trim())) {
       alert('A staff member with this name already exists for this date. Please use a different name.');
       return;
     }
 
-    const attendanceValue = newStaff.shift === 'Both (Full Day)' ? 1.0 : 0.5;
-    
+    // Extract base shift name (e.g., 'Morning' from 'Morning (Half Day)')
+    const baseShift = newStaff.shift.split(' ')[0];
+
     await onUpdateAttendance(
       editingAttendance.staff_id,
       selectedDate,
       'Present',
-      attendanceValue,
       true,
+      newStaff.name,
+      baseShift,
+      newStaff.location,
+      newStaff.salary,
+      false,
       newStaff.shift,
       newStaff.arrivalTime,
-      newStaff.leavingTime,
-      newStaff.salary
+      newStaff.leavingTime
     );
 
     setEditingAttendance(null);
@@ -134,11 +147,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
   const startEdit = (attendance: Attendance) => {
     setEditingAttendance(attendance);
     setNewStaff({
-      name: attendance.staff_name || '',
+      name: attendance.staffName || '',
       location: attendance.location || userLocation,
       shift: attendance.shift || 'Morning (Half Day)',
-      arrivalTime: attendance.arrival_time || '',
-      leavingTime: attendance.leaving_time || '',
+      arrivalTime: attendance.arrivalTime || '',
+      leavingTime: attendance.leavingTime || '',
       salary: attendance.salary || 350
     });
     setShowAddForm(true);
@@ -340,7 +353,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 todayAttendance.map((att, index) => (
                   <tr key={att.id} className="hover:bg-gray-50">
                     <td className="border border-gray-200 px-2 sm:px-4 py-3 text-xs sm:text-sm">{index + 1}</td>
-                    <td className="border border-gray-200 px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium">{att.staff_name}</td>
+                    <td className="border border-gray-200 px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium">{att.staffName}</td>
                     <td className="border border-gray-200 px-2 sm:px-4 py-3 text-xs sm:text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         att.location === 'Big Shop' ? 'bg-blue-100 text-blue-800' :
@@ -359,9 +372,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                         }`}>
                           {att.shift}
                         </span>
-                        {att.arrival_time && att.leaving_time && (
+                        {att.arrivalTime && att.leavingTime && (
                           <div className="text-xs text-gray-600">
-                            In: {att.arrival_time} | Out: {att.leaving_time}
+                            In: {att.arrivalTime} | Out: {att.leavingTime}
                           </div>
                         )}
                       </div>
@@ -373,7 +386,7 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                     </td>
                     <td className="border border-gray-200 px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium text-green-600">
                       ₹{att.salary || 350}
-                      {att.salary_override && <span className="text-orange-600 text-xs ml-1">(edited)</span>}
+                      {att.salaryOverride && <span className="text-orange-600 text-xs ml-1">(edited)</span>}
                     </td>
                     <td className="border border-gray-200 px-2 sm:px-4 py-3">
                       <div className="flex gap-1 sm:gap-2">
@@ -385,7 +398,11 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
-                          onClick={() => onDeletePartTimeAttendance(att.id)}
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete ${att.staffName}?`)) {
+                              onDeletePartTimeAttendance(att.id);
+                            }
+                          }}
                           className="p-1 sm:p-2 text-red-600 hover:bg-red-100 rounded transition-colors"
                           title="Delete"
                         >
