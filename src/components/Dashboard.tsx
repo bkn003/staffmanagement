@@ -24,7 +24,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
   const absentToday = fullTimeAttendance.filter(record => record.status === 'Absent').length;
 
   // Part-time attendance
-  const partTimeAttendance = todayAttendance.filter(record => record.isPartTime === true && record.status === 'Present');
+  const partTimeAttendance = todayAttendance.filter(record => record.isPartTime && record.status === 'Present');
   
   // Calculate part-time breakdown for top summary card
   const partTimeBoth = partTimeAttendance.filter(record => record.shift === 'Both').length;
@@ -173,7 +173,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
           {locations.map((location) => {
             // Calculate location-wise part-time breakdown
             const locationPartTimeData = partTimeAttendance.filter(record => 
-              record.location === location.name && record.isPartTime === true
+              record.location === location.name
             );
 
             const locationBoth = locationPartTimeData.filter(record => record.shift === 'Both');
