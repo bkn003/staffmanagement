@@ -176,25 +176,27 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
           <DollarSign className="text-green-600" size={32} />
           Enhanced Salary Management
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-3 w-full md:w-auto">
           <button 
             onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <FileSpreadsheet size={16} />
-            Export Excel
+            <span className="hidden sm:inline">Export Excel</span>
+            <span className="sm:hidden">Excel</span>
           </button>
           <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             <Download size={16} />
-            Export PDF
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
           </button>
         </div>
       </div>
@@ -202,13 +204,13 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       {/* Month/Year Selection */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Select Month and Year</h2>
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i} value={i}>
@@ -222,7 +224,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -235,7 +237,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -306,43 +308,45 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
 
       {/* Full-Time Salary Details Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">
                 Full-Time Salary Details - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs md:text-sm text-gray-600 mt-1">
                 All values rounded to nearest ₹10. Sunday absents incur ₹500 penalty.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 ml-4">
               {editMode ? (
                 <>
                   <button
                     onClick={handleSaveAll}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                    className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 text-sm"
                   >
                     <Save size={16} />
-                    {saving ? 'Saving...' : 'Save All'}
+                    <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save All'}</span>
+                    <span className="sm:hidden">{saving ? 'Save' : 'Save'}</span>
                   </button>
                   <button
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400"
+                    className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400 text-sm"
                   >
                     <X size={16} />
-                    Cancel
+                    <span className="hidden sm:inline">Cancel</span>
                   </button>
                 </>
               ) : (
                 <button
                   onClick={handleEnableEditAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
                   <Edit2 size={16} />
-                  Enable Edit for All
+                  <span className="hidden sm:inline">Enable Edit for All</span>
+                  <span className="sm:hidden">Edit All</span>
                 </button>
               )}
             </div>
@@ -353,22 +357,22 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Half Days</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Leave</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Abs</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Old Adv</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cur Adv</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Deduction</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Penalty</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gross</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Net Salary</th>
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">New Adv</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Half Days</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Leave</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Abs</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Old Adv</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cur Adv</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Deduction</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Basic</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Incentive</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HRA</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sun Penalty</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gross</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Net Salary</th>
+                <th className="px-2 md:px-4 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">New Adv</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -377,87 +381,87 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                 const tempData = tempAdvances[detail.staffId];
                 
                 return (
-                  <tr key={detail.staffId} className="hover:bg-gray-50 text-sm">
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-900">{index + 1}</td>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
+                  <tr key={detail.staffId} className="hover:bg-gray-50 text-xs md:text-sm">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-gray-900">{index + 1}</td>
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap font-medium text-gray-900">
                       {staffMember?.name}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                         {detail.presentDays}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                         {detail.halfDays}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         detail.leaveDays > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                       }`}>
                         {detail.leaveDays}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         detail.sundayAbsents > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                       }`}>
                         {detail.sundayAbsents}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       {editMode ? (
                         <input
                           type="number"
                           value={tempData?.oldAdvance || 0}
                           onChange={(e) => updateTempAdvance(detail.staffId, 'oldAdvance', Number(e.target.value))}
-                          className="w-20 px-2 py-1 text-xs border rounded"
+                          className="w-16 md:w-20 px-1 md:px-2 py-1 text-xs border rounded"
                           disabled
                         />
                       ) : (
                         <span className="text-blue-600">₹{detail.oldAdv}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       {editMode ? (
                         <input
                           type="number"
                           value={tempData?.currentAdvance || 0}
                           onChange={(e) => updateTempAdvance(detail.staffId, 'currentAdvance', Number(e.target.value))}
-                          className="w-20 px-2 py-1 text-xs border rounded"
+                          className="w-16 md:w-20 px-1 md:px-2 py-1 text-xs border rounded"
                         />
                       ) : (
                         <span className="text-blue-600">₹{detail.curAdv}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       {editMode ? (
                         <input
                           type="number"
                           value={tempData?.deduction || 0}
                           onChange={(e) => updateTempAdvance(detail.staffId, 'deduction', Number(e.target.value))}
-                          className="w-20 px-2 py-1 text-xs border rounded"
+                          className="w-16 md:w-20 px-1 md:px-2 py-1 text-xs border rounded"
                         />
                       ) : (
                         <span className="text-red-600">₹{detail.deduction}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.basicEarned}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.incentiveEarned}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.hraEarned}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.basicEarned}</td>
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.incentiveEarned}</td>
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center text-gray-900">₹{detail.hraEarned}</td>
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center">
                       <span className={`${detail.sundayPenalty > 0 ? 'text-red-600' : 'text-gray-900'}`}>
                         ₹{detail.sundayPenalty}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center font-semibold text-green-600">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center font-semibold text-green-600">
                       ₹{detail.grossSalary}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center font-bold text-green-700">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center font-bold text-green-700">
                       ₹{detail.netSalary}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-blue-600">
+                    <td className="px-2 md:px-4 py-3 whitespace-nowrap text-center text-blue-600">
                       ₹{editMode ? (tempData?.newAdvance || 0) : detail.newAdv}
                     </td>
                   </tr>
@@ -471,11 +475,11 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
       {/* Part-Time Salary Details */}
       {partTimeSalaries.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800">
+          <div className="p-4 md:p-6 border-b border-gray-200">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">
               Part-Time Staff Earnings - {new Date(0, selectedMonth).toLocaleString('default', { month: 'long' })} {selectedYear}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs md:text-sm text-gray-600 mt-1">
               Rate: ₹350/day (Mon-Sat), ₹400/day (Sunday)
             </p>
           </div>
@@ -484,30 +488,30 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Weekly Breakdown</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Earnings</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {partTimeSalaries.map((salary, index) => (
-                  <tr key={`${salary.staffName}-${index}`} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={`${salary.staffName}-${index}`} className="hover:bg-gray-50 text-xs md:text-sm">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-gray-900">{index + 1}</td>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                       {salary.staffName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                         {salary.location}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center text-gray-900">
                       {salary.totalDays}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center text-gray-900">
                       <div className="space-y-1">
                         {salary.weeklyBreakdown.map(week => (
                           <div key={week.week} className="text-xs">
@@ -516,7 +520,7 @@ const SalaryManagement: React.FC<SalaryManagementProps> = ({
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-purple-600">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center font-bold text-purple-600">
                       ₹{salary.totalEarnings.toLocaleString()}
                     </td>
                   </tr>
