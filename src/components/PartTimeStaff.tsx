@@ -934,7 +934,13 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                                   })
                                 ).flat().filter(Boolean)}
                               </div>
-                            </td>
+                                <span className="font-medium">
+                                  {dayAttendance.shift}({new Date(day.date).toLocaleDateString('en-GB', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: '2-digit' 
+                                  })})
+                                </span>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               <div className="space-y-1">
                                 {salary.weeklyBreakdown.map(week => (
