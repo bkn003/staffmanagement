@@ -137,25 +137,6 @@ export interface User {
   location?: string;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  type: 'location' | 'salary';
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface SalaryCategory {
-  id: string;
-  name: string;
-  basicSalary: number;
-  incentive: number;
-  hra: number;
-  totalSalary: number;
-  isActive: boolean;
-  createdAt: string;
-}
-
 export type NavigationTab = 'Dashboard' | 'Staff Management' | 'Attendance' | 'Salary Management' | 'Part-Time Staff' | 'Old Staff Records';
 
 export interface AttendanceFilter {
