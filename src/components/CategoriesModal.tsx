@@ -189,10 +189,21 @@ const CategoriesModal: React.FC<CategoriesModalProps> = ({
                       </button>
                       <button
                         onClick={() => handleDeleteLocation(location.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    {editingSalary === category.id && (
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setEditingSalary(null)}
+                          className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSalary(null)}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -260,7 +271,26 @@ const CategoriesModal: React.FC<CategoriesModalProps> = ({
                 {salaryCategories.map((category) => (
                   <div key={category.id} className="p-4 bg-white border border-gray-200 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800">{category.name}</h4>
+                      {editingSalary === category.id ? (
+                        <input
+                          type="text"
+                          defaultValue={category.name}
+                          onBlur={(e) => {
+                            if (e.target.value.trim()) {
+                              handleUpdateSalaryCategory(category.id, { name: e.target.value.trim() });
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                              handleUpdateSalaryCategory(category.id, { name: e.currentTarget.value.trim() });
+                            }
+                          }}
+                          className="font-semibold text-gray-800 bg-transparent border-b border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <h4 className="font-semibold text-gray-800">{category.name}</h4>
+                      )}
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingSalary(category.id)}
@@ -277,48 +307,53 @@ const CategoriesModal: React.FC<CategoriesModalProps> = ({
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Basic:</span>
-                        <div className="font-medium">₹{category.basicSalary.toLocaleString()}</div>
+                    {editingSalary === category.id ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
+                        <div>
+                          <label className="block text-gray-600 mb-1">Basic Salary:</label>
+                          <input
+                            type="number"
+                            defaultValue={category.basicSalary}
+                            onBlur={(e) => handleUpdateSalaryCategory(category.id, { basicSalary: Number(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 mb-1">Incentive:</label>
+                          <input
+                            type="number"
+                            defaultValue={category.incentive}
+                            onBlur={(e) => handleUpdateSalaryCategory(category.id, { incentive: Number(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 mb-1">HRA:</label>
+                          <input
+                            type="number"
+                            defaultValue={category.hra}
+                            onBlur={(e) => handleUpdateSalaryCategory(category.id, { hra: Number(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Incentive:</span>
-                        <div className="font-medium">₹{category.incentive.toLocaleString()}</div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Basic:</span>
+                          <div className="font-medium">₹{category.basicSalary.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Incentive:</span>
+                          <div className="font-medium">₹{category.incentive.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">HRA:</span>
+                          <div className="font-medium">₹{category.hra.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Total:</span>
+                          <div className="font-bold text-green-600">₹{category.totalSalary.toLocaleString()}</div>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">HRA:</span>
-                        <div className="font-medium">₹{category.hra.toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Total:</span>
-                        <div className="font-bold text-green-600">₹{category.totalSalary.toLocaleString()}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 md:p-6 border-t border-gray-200 flex flex-col sm:flex-row gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Save size={16} />
-            Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default CategoriesModal;
+                    )}
