@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, DollarSign, Download, FileText } from 'lucide-react';
 import { Staff, PartTimeAttendance } from '../types';
-import { getPartTimeAttendance } from '../services/attendanceService';
+import { attendanceService } from '../services/attendanceService';
 import { exportPartTimeSalaryPDF, exportPartTimeSalaryExcel } from '../utils/exportUtils';
 
 interface PartTimeStaffProps {
@@ -34,7 +34,7 @@ export default function PartTimeStaff({ staff }: PartTimeStaffProps) {
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const attendanceData = await getPartTimeAttendance();
+        const attendanceData = await attendanceService.getAll();
         setAttendance(attendanceData);
       } catch (error) {
         console.error('Error fetching part-time attendance:', error);
