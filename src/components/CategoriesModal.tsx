@@ -20,7 +20,7 @@ interface CategoriesModalProps {
   onClose: () => void;
 }
 
-export const CategoriesModal: React.FC<CategoriesModalProps> = ({ isOpen, onClose }) => {
+const CategoriesModal: React.FC<CategoriesModalProps> = ({ isOpen, onClose }) => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [salaryCategories, setSalaryCategories] = useState<SalaryCategory[]>([]);
   const [newLocation, setNewLocation] = useState('');
@@ -368,4 +368,3 @@ export const CategoriesModal: React.FC<CategoriesModalProps> = ({ isOpen, onClos
       </div>
     </div>
   );
-};
