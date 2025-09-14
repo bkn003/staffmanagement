@@ -368,3 +368,6 @@ const CategoriesModal: React.FC<CategoriesModalProps> = ({ isOpen, onClose }) =>
       </div>
     </div>
   );
+};
+
+export default CategoriesModal;
