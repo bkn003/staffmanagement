@@ -8,10 +8,7 @@ import SalaryManagement from './components/SalaryManagement';
 import PartTimeStaff from './components/PartTimeStaff';
 import OldStaffRecords from './components/OldStaffRecords';
 import SalaryHikeModal from './components/SalaryHikeModal';
-import CategoriesModal from './components/CategoriesModal';
 import { NavigationTab, Staff, Attendance, AdvanceDeduction, OldStaffRecord, SalaryHike, User } from './types';
-import { Category, SalaryCategory } from './types';
-import { defaultLocationCategories, defaultSalaryCategories } from './data/categories';
 import { staffService } from './services/staffService';
 import { attendanceService } from './services/attendanceService';
 import { advanceService } from './services/advanceService';
@@ -27,9 +24,6 @@ function App() {
   const [advances, setAdvances] = useState<AdvanceDeduction[]>([]);
   const [oldStaffRecords, setOldStaffRecords] = useState<OldStaffRecord[]>([]);
   const [salaryHikes, setSalaryHikes] = useState<SalaryHike[]>([]);
-  const [locationCategories, setLocationCategories] = useState<Category[]>(defaultLocationCategories);
-  const [salaryCategories, setSalaryCategories] = useState<SalaryCategory[]>(defaultSalaryCategories);
-  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -71,28 +65,6 @@ function App() {
       loadAllData();
     }
   }, [user]);
-
-  // Load categories from localStorage on app start
-  useEffect(() => {
-    const savedLocationCategories = localStorage.getItem('locationCategories');
-    const savedSalaryCategories = localStorage.getItem('salaryCategories');
-    
-    if (savedLocationCategories) {
-      try {
-        setLocationCategories(JSON.parse(savedLocationCategories));
-      } catch (error) {
-        console.error('Error loading location categories:', error);
-      }
-    }
-    
-    if (savedSalaryCategories) {
-      try {
-        setSalaryCategories(JSON.parse(savedSalaryCategories));
-      } catch (error) {
-        console.error('Error loading salary categories:', error);
-      }
-    }
-  }, []);
 
   // Set default tab based on user role
   useEffect(() => {
@@ -563,15 +535,6 @@ function App() {
     }
   };
 
-  const handleUpdateCategories = (locations: Category[], salaryCategories: SalaryCategory[]) => {
-    setLocationCategories(locations);
-    setSalaryCategories(salaryCategories);
-    
-    // Save to localStorage
-    localStorage.setItem('locationCategories', JSON.stringify(locations));
-    localStorage.setItem('salaryCategories', JSON.stringify(salaryCategories));
-  };
-
   const renderContent = () => {
     if (loading) {
       return (
@@ -603,12 +566,9 @@ function App() {
           <StaffManagement 
             staff={filteredStaff}
             salaryHikes={salaryHikes}
-            locationCategories={locationCategories}
-            salaryCategories={salaryCategories}
             onAddStaff={addStaff}
             onUpdateStaff={updateStaff}
             onDeleteStaff={deleteStaff}
-            onOpenCategories={() => setShowCategoriesModal(true)}
           />
         );
       case 'Attendance':
@@ -681,16 +641,6 @@ function App() {
           staff={filteredStaff}
           newSalary={salaryHikeModal.newSalary}
           onConfirm={salaryHikeModal.onConfirm}
-        />
-      )}
-      
-      {showCategoriesModal && (
-        <CategoriesModal
-          isOpen={showCategoriesModal}
-          onClose={() => setShowCategoriesModal(false)}
-          onUpdateCategories={handleUpdateCategories}
-          currentLocationCategories={locationCategories}
-          currentSalaryCategories={salaryCategories}
         />
       )}
     </div>
