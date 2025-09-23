@@ -1,36 +1,29 @@
 import React, { useState } from 'react';
-import { Staff, OldStaffRecord, SalaryHike, Category, SalaryCategory } from '../types';
-import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp, Settings } from 'lucide-react';
+import { Staff, OldStaffRecord, SalaryHike } from '../types';
+import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp } from 'lucide-react';
 import { calculateExperience } from '../utils/salaryCalculations';
 import SalaryHikeHistory from './SalaryHikeHistory';
 
 interface StaffManagementProps {
   staff: Staff[];
   salaryHikes: SalaryHike[];
-  locationCategories: Category[];
-  salaryCategories: SalaryCategory[];
   onAddStaff: (staff: Omit<Staff, 'id'>) => void;
   onUpdateStaff: (id: string, staff: Partial<Staff>) => void;
   onDeleteStaff: (id: string, reason: string) => void;
-  onOpenCategories: () => void;
 }
 
 const StaffManagement: React.FC<StaffManagementProps> = ({
   staff,
   salaryHikes,
-  locationCategories,
-  salaryCategories,
   onAddStaff,
   onUpdateStaff,
-  onDeleteStaff,
-  onOpenCategories
+  onDeleteStaff
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<Staff | null>(null);
   const [showSalaryHistory, setShowSalaryHistory] = useState<Staff | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
-  const [selectedSalaryCategory, setSelectedSalaryCategory] = useState<string>('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,19 +45,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       hra: 0,
       joinedDate: ''
     });
-  };
-
-  const handleSalaryCategoryChange = (categoryId: string) => {
-    setSelectedSalaryCategory(categoryId);
-    const category = salaryCategories.find(cat => cat.id === categoryId);
-    if (category) {
-      setFormData({
-        ...formData,
-        basicSalary: category.basicSalary,
-        incentive: category.incentive,
-        hra: category.hra
-      });
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,7 +72,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       setShowAddForm(false);
     }
     resetForm();
-    setSelectedSalaryCategory('');
   };
 
   const handleEdit = (staffMember: Staff) => {
@@ -155,13 +134,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
         </h1>
         <div className="header-actions flex gap-3">
           <button
-            onClick={onOpenCategories}
-            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-          >
-            <Settings size={16} />
-            Categories
-          </button>
-          <button
             onClick={() => setShowAddForm(true)}
             className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
@@ -177,28 +149,6 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
           <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">
             {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
           </h2>
-          
-          {!editingStaff && (
-            <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quick Select Salary Category (Optional)</label>
-              <select
-                value={selectedSalaryCategory}
-                onChange={(e) => handleSalaryCategoryChange(e.target.value)}
-                className="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a salary category...</option>
-                {salaryCategories.filter(cat => cat.isActive).map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name} - ₹{category.totalSalary.toLocaleString()}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Selecting a category will auto-fill the salary fields below
-              </p>
-            </div>
-          )}
-          
           <form onSubmit={handleSubmit} className="form-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -217,11 +167,9 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 onChange={(e) => setFormData({ ...formData, location: e.target.value as Staff['location'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                {locationCategories.filter(cat => cat.isActive).map(location => (
-                  <option key={location.id} value={location.name}>
-                    {location.name}
-                  </option>
-                ))}
+                <option value="Big Shop">Big Shop</option>
+                <option value="Small Shop">Small Shop</option>
+                <option value="Godown">Godown</option>
               </select>
             </div>
             <div>
