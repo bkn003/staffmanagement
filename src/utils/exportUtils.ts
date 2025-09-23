@@ -352,36 +352,6 @@ export const exportPartTimeSalaryPDF = (
   doc.save(fileName);
 };
 
-export const exportPartTimeSalaryExcel = (
-  partTimeSalaries: PartTimeSalaryDetail[],
-  month: number,
-  year: number,
-  reportType: 'weekly' | 'monthly' | 'dateRange',
-  weekData?: { start: string; end: string },
-  dateRange?: { start: string; end: string }
-) => {
-  // Part-time staff data
-  const partTimeData = partTimeSalaries.map((detail, index) => ({
-    'S.No': index + 1,
-    'Name': detail.staffName,
-    'Location': detail.location,
-    'Total Days': detail.totalDays,
-    'Total Earnings': formatNumberForExport(detail.totalEarnings)
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(partTimeData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Part-Time Salary');
-
-  const fileName = reportType === 'weekly' && weekData 
-    ? `part-time-salary-${weekData.start}-to-${weekData.end}.xlsx`
-    : reportType === 'dateRange' && dateRange
-    ? `part-time-salary-${dateRange.start}-to-${dateRange.end}.xlsx`
-    : `part-time-salary-${new Date(0, month).toLocaleString('default', { month: 'long' })}-${year}.xlsx`;
-    
-  XLSX.writeFile(wb, fileName);
-};
-
 export const exportOldStaffPDF = (oldStaffRecords: OldStaffRecord[]) => {
   const doc = new jsPDF('landscape');
   
