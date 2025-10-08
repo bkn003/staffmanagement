@@ -1,28 +1,5 @@
-/*
-  # User Profiles and Role-Based Access Control
-
-  1. New Tables
-    - `user_profiles`
-      - `id` (uuid, primary key, references auth.users)
-      - `email` (text, unique)
-      - `full_name` (text)
-      - `role` (text) - admin, godown_manager, big_shop_manager, small_shop_manager
-      - `location` (text) - godown, big_shop, small_shop (null for admin)
-      - `created_at` (timestamptz)
-      - `updated_at` (timestamptz)
-
-  2. Security
-    - Enable RLS on `user_profiles` table
-    - Add policy for users to read their own profile
-    - Add policy for admins to read all profiles
-    - Add policy for admins to insert/update/delete profiles
-
-  3. Important Notes
-    - Role determines what pages and data users can access
-    - Location determines which staff records users can see (filtered by staff location)
-    - Admin has full access to everything
-    - Managers can only see attendance and part-time staff for their location
-*/
+-- Run this in your Supabase SQL Editor to create the user_profiles table
+-- https://supabase.com/dashboard/project/_/sql/new
 
 CREATE TABLE IF NOT EXISTS user_profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -36,11 +13,13 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
+-- Allow users to read their own profile
 CREATE POLICY "Users can read own profile"
   ON user_profiles FOR SELECT
   TO authenticated
   USING (auth.uid() = id);
 
+-- Allow admins to read all profiles
 CREATE POLICY "Admins can read all profiles"
   ON user_profiles FOR SELECT
   TO authenticated
@@ -52,11 +31,13 @@ CREATE POLICY "Admins can read all profiles"
     )
   );
 
+-- Allow users to insert their own profile during sign-up
 CREATE POLICY "Users can insert own profile"
   ON user_profiles FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = id);
 
+-- Allow admins to insert any profile
 CREATE POLICY "Admins can insert any profile"
   ON user_profiles FOR INSERT
   TO authenticated
@@ -68,6 +49,7 @@ CREATE POLICY "Admins can insert any profile"
     )
   );
 
+-- Allow admins to update any profile
 CREATE POLICY "Admins can update profiles"
   ON user_profiles FOR UPDATE
   TO authenticated
@@ -86,6 +68,7 @@ CREATE POLICY "Admins can update profiles"
     )
   );
 
+-- Allow admins to delete profiles
 CREATE POLICY "Admins can delete profiles"
   ON user_profiles FOR DELETE
   TO authenticated
