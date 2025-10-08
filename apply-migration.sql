@@ -1,7 +1,20 @@
 -- Run this in your Supabase SQL Editor to create the user_profiles table
 -- https://supabase.com/dashboard/project/_/sql/new
 
-CREATE TABLE IF NOT EXISTS user_profiles (
+-- Drop existing table and policies if they exist
+DROP POLICY IF EXISTS "Users can read own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can read all profiles" ON user_profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can insert any profile" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can update profiles" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can delete profiles" ON user_profiles;
+DROP POLICY IF EXISTS "Allow users to insert own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Allow users to read own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Allow users to update own profile" ON user_profiles;
+DROP TABLE IF EXISTS user_profiles;
+
+-- Create the user_profiles table
+CREATE TABLE user_profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text UNIQUE NOT NULL,
   full_name text NOT NULL,
@@ -11,74 +24,29 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   updated_at timestamptz DEFAULT now()
 );
 
+-- Enable RLS
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
--- Allow users to read their own profile
-CREATE POLICY "Users can read own profile"
-  ON user_profiles FOR SELECT
-  TO authenticated
-  USING (auth.uid() = id);
-
--- Allow admins to read all profiles
-CREATE POLICY "Admins can read all profiles"
-  ON user_profiles FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role = 'admin'
-    )
-  );
-
--- Allow users to insert their own profile during sign-up
-CREATE POLICY "Users can insert own profile"
+-- Simple policies without circular dependencies
+-- Allow anyone authenticated to insert their own profile (for sign-up)
+CREATE POLICY "Allow users to insert own profile"
   ON user_profiles FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = id);
 
--- Allow admins to insert any profile
-CREATE POLICY "Admins can insert any profile"
-  ON user_profiles FOR INSERT
+-- Allow users to read their own profile
+CREATE POLICY "Allow users to read own profile"
+  ON user_profiles FOR SELECT
   TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role = 'admin'
-    )
-  );
+  USING (auth.uid() = id);
 
--- Allow admins to update any profile
-CREATE POLICY "Admins can update profiles"
+-- Allow users to update their own profile
+CREATE POLICY "Allow users to update own profile"
   ON user_profiles FOR UPDATE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role = 'admin'
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role = 'admin'
-    )
-  );
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
--- Allow admins to delete profiles
-CREATE POLICY "Admins can delete profiles"
-  ON user_profiles FOR DELETE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role = 'admin'
-    )
-  );
-
+-- Create indexes
 CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_location ON user_profiles(location);
