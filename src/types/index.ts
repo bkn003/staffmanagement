@@ -133,8 +133,9 @@ export interface SalaryHike {
 
 export interface User {
   email: string;
-  role: 'admin' | 'manager';
+  role: 'admin' | 'godown_manager' | 'big_shop_manager' | 'small_shop_manager';
   location?: string;
+  fullName: string;
 }
 
 export type NavigationTab = 'Dashboard' | 'Staff Management' | 'Attendance' | 'Salary Management' | 'Part-Time Staff' | 'Old Staff Records';

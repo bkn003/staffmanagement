@@ -1,64 +1,76 @@
 import React, { useState } from 'react';
 import { Lock, User, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface LoginProps {
-  onLogin: (user: { email: string; role: string; location?: string }) => void;
+  onLogin: (user: { email: string; role: string; location?: string; fullName: string }) => void;
+  onSwitchToSignUp: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const users = [
-    { email: 'staff@admin.com', password: 'Staffans7369', role: 'admin', location: null },
-    { email: 'manager@bigshop.com', password: 'MngrBig25', role: 'manager', location: 'Big Shop' },
-    { email: 'manager@smallshop.com', password: 'MngrSml25', role: 'manager', location: 'Small Shop' },
-    { email: 'manager@godown.com', password: 'MngrGdn25', role: 'manager', location: 'Godown' }
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      // Store login session
-      const loginData = {
-        user: {
-          email: user.email,
-          role: user.role,
-          location: user.location
-        },
-        timestamp: Date.now(),
-        expiresIn: 30 * 24 * 60 * 60 * 1000 // 30 days
-      };
-      localStorage.setItem('staffManagementLogin', JSON.stringify(loginData));
-      
-      onLogin({
-        email: user.email,
-        role: user.role,
-        location: user.location
+    try {
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-    } else {
-      setError('Invalid email or password');
+
+      if (signInError) throw signInError;
+
+      if (authData.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        if (!profile) {
+          throw new Error('User profile not found');
+        }
+
+        const loginData = {
+          user: {
+            email: profile.email,
+            role: profile.role,
+            location: profile.location,
+            fullName: profile.full_name
+          },
+          timestamp: Date.now(),
+          expiresIn: 30 * 24 * 60 * 60 * 1000
+        };
+        localStorage.setItem('staffManagementLogin', JSON.stringify(loginData));
+
+        onLogin({
+          email: profile.email,
+          role: profile.role,
+          location: profile.location,
+          fullName: profile.full_name
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <div className="text-center mb-6 md:mb-8">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="text-white" size={24} />
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">Staff Management System</h1>
@@ -74,7 +86,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                   placeholder="Enter your email"
                   required
                 />
@@ -89,7 +101,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                   placeholder="Enter your password"
                   required
                 />
@@ -106,11 +118,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-slate-700 text-white py-3 rounded-lg hover:bg-slate-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={onSwitchToSignUp}
+                className="text-slate-700 font-medium hover:underline"
+              >
+                Sign Up
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

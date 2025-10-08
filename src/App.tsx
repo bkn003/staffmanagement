@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
+import SignUp from './components/SignUp';
 import Dashboard from './components/Dashboard';
 import StaffManagement from './components/StaffManagement';
 import AttendanceTracker from './components/AttendanceTracker';
@@ -16,8 +18,9 @@ import { oldStaffService } from './services/oldStaffService';
 import { salaryHikeService } from './services/salaryHikeService';
 import { isSunday } from './utils/salaryCalculations';
 
-function App() {
-  const [user, setUser] = useState<User | null>(null);
+function AppContent() {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState<NavigationTab>('Dashboard');
   const [staff, setStaff] = useState<Staff[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -27,7 +30,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [salaryHikeModal, setSalaryHikeModal] = useState<{
     isOpen: boolean;
     staffId: string;
@@ -37,28 +40,6 @@ function App() {
     onConfirm: (isHike: boolean, reason?: string) => void;
   } | null>(null);
 
-  // Load all data from Supabase on app start
-  useEffect(() => {
-    // Check for existing login session
-    const savedLogin = localStorage.getItem('staffManagementLogin');
-    if (savedLogin) {
-      try {
-        const loginData = JSON.parse(savedLogin);
-        const now = Date.now();
-        
-        // Check if session is still valid (30 days)
-        if (now - loginData.timestamp < loginData.expiresIn) {
-          setUser(loginData.user);
-        } else {
-          // Session expired, remove it
-          localStorage.removeItem('staffManagementLogin');
-        }
-      } catch (error) {
-        // Invalid session data, remove it
-        localStorage.removeItem('staffManagementLogin');
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -66,10 +47,9 @@ function App() {
     }
   }, [user]);
 
-  // Set default tab based on user role
   useEffect(() => {
     if (user) {
-      if (user.role === 'manager') {
+      if (user.role !== 'admin') {
         setActiveTab('Attendance');
       } else {
         setActiveTab('Dashboard');
@@ -100,38 +80,51 @@ function App() {
     }
   };
 
-  const handleLogin = (userData: User) => {
-    setUser(userData);
+  const handleLogin = () => {
+    setShowSignUp(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('staffManagementLogin');
-    setUser(null);
+  const handleSignUpSuccess = () => {
+    setShowSignUp(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
     setActiveTab('Dashboard');
   };
 
-  // Filter staff based on user role and location
   const getFilteredStaff = () => {
     if (user?.role === 'admin') {
       return staff;
-    } else if (user?.role === 'manager' && user.location) {
-      return staff.filter(member => member.location === user.location);
+    } else if (user?.location) {
+      const locationMap: Record<string, string> = {
+        'godown': 'Godown',
+        'big_shop': 'Big Shop',
+        'small_shop': 'Small Shop'
+      };
+      const displayLocation = locationMap[user.location];
+      return staff.filter(member => member.location === displayLocation);
     }
     return [];
   };
 
-  // Filter attendance based on user role and location
   const getFilteredAttendance = () => {
     if (user?.role === 'admin') {
       return attendance;
-    } else if (user?.role === 'manager' && user.location) {
+    } else if (user?.location) {
+      const locationMap: Record<string, string> = {
+        'godown': 'Godown',
+        'big_shop': 'Big Shop',
+        'small_shop': 'Small Shop'
+      };
+      const displayLocation = locationMap[user.location];
       const locationStaffIds = staff
-        .filter(member => member.location === user.location)
+        .filter(member => member.location === displayLocation)
         .map(member => member.id);
-      
-      return attendance.filter(record => 
-        record.isPartTime 
-          ? record.location === user.location
+
+      return attendance.filter(record =>
+        record.isPartTime
+          ? record.location === displayLocation
           : locationStaffIds.includes(record.staffId)
       );
     }
@@ -247,38 +240,35 @@ function App() {
     }
   };
 
-  // Delete part-time attendance record
   const deletePartTimeAttendance = async (attendanceId: string) => {
+    const recordToDelete = attendance.find(a => a.id === attendanceId);
     try {
-      // Remove from local state first
-      const recordToDelete = attendance.find(a => a.id === attendanceId);
       setAttendance(prev => prev.filter(a => a.id !== attendanceId));
-      
-      // Delete from database
       await attendanceService.delete(attendanceId);
     } catch (error) {
       console.error('Error deleting part-time attendance:', error);
-      // Restore the record if deletion failed
       if (recordToDelete) {
         setAttendance(prev => [...prev, recordToDelete]);
       }
     }
   };
 
-  // Bulk update attendance (admin only)
   const bulkUpdateAttendance = async (date: string, status: 'Present' | 'Absent') => {
-    // Allow both admin and managers to perform bulk updates
-    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
-      alert('Only administrators and managers can perform bulk updates');
+    if (!user) {
+      alert('Only authenticated users can perform bulk updates');
       return;
     }
 
-    // Filter staff based on user role and location
     let targetStaff = staff.filter(member => member.isActive);
-    
-    if (user.role === 'manager' && user.location) {
-      // Managers can only bulk update staff from their location
-      targetStaff = targetStaff.filter(member => member.location === user.location);
+
+    if (user.role !== 'admin' && user.location) {
+      const locationMap: Record<string, string> = {
+        'godown': 'Godown',
+        'big_shop': 'Big Shop',
+        'small_shop': 'Small Shop'
+      };
+      const displayLocation = locationMap[user.location];
+      targetStaff = targetStaff.filter(member => member.location === displayLocation);
     }
 
     const attendanceRecords = targetStaff.map(member => ({
@@ -323,9 +313,8 @@ function App() {
     }
   };
 
-  // Update staff member with salary hike tracking
   const updateStaff = async (id: string, updatedStaff: Partial<Staff>) => {
-    if (user?.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       alert('Only administrators can update staff');
       return;
     }
@@ -491,9 +480,8 @@ function App() {
     }
   };
 
-  // Update advances and deductions (admin only)
   const updateAdvances = async (staffId: string, month: number, year: number, advanceData: Partial<AdvanceDeduction>) => {
-    if (user?.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       alert('Only administrators can update advances');
       return;
     }
@@ -536,12 +524,12 @@ function App() {
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (loading || authLoading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading data from database...</p>
+            <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
       );
@@ -580,7 +568,7 @@ function App() {
             onDateChange={setSelectedDate}
             onUpdateAttendance={updateAttendance}
             onBulkUpdateAttendance={bulkUpdateAttendance}
-            userRole={user?.role || 'manager'}
+            userRole={user?.role || 'godown_manager'}
           />
         );
       case 'Salary Management':
@@ -616,8 +604,32 @@ function App() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    if (showSignUp) {
+      return (
+        <SignUp
+          onSignUpSuccess={handleSignUpSuccess}
+          onSwitchToLogin={() => setShowSignUp(false)}
+        />
+      );
+    }
+    return (
+      <Login
+        onLogin={handleLogin}
+        onSwitchToSignUp={() => setShowSignUp(true)}
+      />
+    );
   }
 
   return (
@@ -644,6 +656,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -11,7 +11,7 @@ interface AttendanceTrackerProps {
   onDateChange: (date: string) => void;
   onUpdateAttendance: (staffId: string, date: string, status: 'Present' | 'Half Day' | 'Absent', isPartTime?: boolean, staffName?: string, shift?: 'Morning' | 'Evening' | 'Both', location?: string, salary?: number, salaryOverride?: boolean) => void;
   onBulkUpdateAttendance: (date: string, status: 'Present' | 'Absent') => void;
-  userRole: 'admin' | 'manager';
+  userRole: string;
 }
 
 const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({

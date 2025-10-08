@@ -29,12 +29,23 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
         { id: 'Old Staff Records' as NavigationTab, label: 'Archive', icon: Archive },
       ];
     } else {
-      // Manager role - limited access
       return [
         { id: 'Attendance' as NavigationTab, label: 'Attendance', icon: Calendar },
         { id: 'Part-Time Staff' as NavigationTab, label: 'Part-Time', icon: Clock },
       ];
     }
+  };
+
+  const getLocationDisplay = () => {
+    if (user.role === 'admin') return 'Administrator';
+
+    const locationMap: Record<string, string> = {
+      'godown': 'Godown',
+      'big_shop': 'Big Shop',
+      'small_shop': 'Small Shop'
+    };
+
+    return `${locationMap[user.location || ''] || user.location} Manager`;
   };
 
   const tabs = getAvailableTabs();
@@ -70,7 +81,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-sm font-medium text-gray-800">
-                {user.role === 'admin' ? 'Administrator' : `${user.location} Manager`}
+                {getLocationDisplay()}
               </div>
               <div className="text-xs text-gray-500">{user.email}</div>
             </div>
@@ -92,7 +103,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, user, 
           <div className="flex items-center gap-2">
             <div className="text-right">
               <div className="text-xs font-medium text-gray-800">
-                {user.role === 'admin' ? 'Admin' : user.location}
+                {getLocationDisplay()}
               </div>
             </div>
             <button
