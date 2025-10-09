@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { Lock, User, AlertCircle } from 'lucide-react';
+import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
   onLogin: (user: { email: string; role: string; location?: string; fullName: string }) => void;
-  onSwitchToSignUp: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +59,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
         });
       }
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      if (err.message?.includes('Invalid login credentials')) {
+        setError('Account not found. Please contact your administrator to create an account.');
+      } else if (err.message?.includes('User profile not found')) {
+        setError('Account not found. Please contact your administrator.');
+      } else {
+        setError(err.message || 'Login failed. Please contact your administrator.');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,13 +104,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                   placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
@@ -124,17 +137,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Don't have an account?{' '}
-              <button
-                onClick={onSwitchToSignUp}
-                className="text-slate-700 font-medium hover:underline"
-              >
-                Sign Up
-              </button>
-            </p>
-          </div>
         </div>
       </div>
     </div>

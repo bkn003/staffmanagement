@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
-import SignUp from './components/SignUp';
 import Dashboard from './components/Dashboard';
 import StaffManagement from './components/StaffManagement';
 import AttendanceTracker from './components/AttendanceTracker';
@@ -20,7 +19,6 @@ import { isSunday } from './utils/salaryCalculations';
 
 function AppContent() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState<NavigationTab>('Dashboard');
   const [staff, setStaff] = useState<Staff[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -81,11 +79,7 @@ function AppContent() {
   };
 
   const handleLogin = () => {
-    setShowSignUp(false);
-  };
-
-  const handleSignUpSuccess = () => {
-    setShowSignUp(false);
+    // Login handled by AuthContext
   };
 
   const handleLogout = async () => {
@@ -616,18 +610,9 @@ function AppContent() {
   }
 
   if (!user) {
-    if (showSignUp) {
-      return (
-        <SignUp
-          onSignUpSuccess={handleSignUpSuccess}
-          onSwitchToLogin={() => setShowSignUp(false)}
-        />
-      );
-    }
     return (
       <Login
         onLogin={handleLogin}
-        onSwitchToSignUp={() => setShowSignUp(true)}
       />
     );
   }
