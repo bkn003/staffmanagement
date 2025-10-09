@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Staff, OldStaffRecord, SalaryHike } from '../types';
-import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp, MapPin, DollarSign } from 'lucide-react';
 import { calculateExperience } from '../utils/salaryCalculations';
 import SalaryHikeHistory from './SalaryHikeHistory';
+import LocationManager from './LocationManager';
+import SalaryCategoryManager from './SalaryCategoryManager';
 
 interface StaffManagementProps {
   staff: Staff[];
@@ -24,6 +26,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState<Staff | null>(null);
   const [showSalaryHistory, setShowSalaryHistory] = useState<Staff | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [showLocationManager, setShowLocationManager] = useState(false);
+  const [showSalaryCategoryManager, setShowSalaryCategoryManager] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -127,15 +131,29 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="page-header flex items-center justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
           <Users className="text-blue-600 md:w-8 md:h-8" size={24} />
           Staff Management
         </h1>
-        <div className="header-actions flex gap-3">
+        <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowLocationManager(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm flex-1 sm:flex-none justify-center"
+          >
+            <MapPin size={16} />
+            <span className="hidden sm:inline">Locations</span>
+          </button>
+          <button
+            onClick={() => setShowSalaryCategoryManager(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm flex-1 sm:flex-none justify-center"
+          >
+            <DollarSign size={16} />
+            <span className="hidden sm:inline">Salary Categories</span>
+          </button>
           <button
             onClick={() => setShowAddForm(true)}
-            className="mobile-full-button flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex-1 sm:flex-none justify-center"
           >
             <Plus size={16} />
             Add Staff
@@ -276,6 +294,18 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
           </div>
         </div>
       )}
+
+      {/* Location Manager */}
+      <LocationManager
+        isOpen={showLocationManager}
+        onClose={() => setShowLocationManager(false)}
+      />
+
+      {/* Salary Category Manager */}
+      <SalaryCategoryManager
+        isOpen={showSalaryCategoryManager}
+        onClose={() => setShowSalaryCategoryManager(false)}
+      />
 
       {/* Salary History Modal */}
       {showSalaryHistory && (
