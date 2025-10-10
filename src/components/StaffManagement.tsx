@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Staff, OldStaffRecord, SalaryHike } from '../types';
 import { Users, Plus, Edit2, Trash2, Download, Archive, Calendar, TrendingUp, MapPin, DollarSign } from 'lucide-react';
 import { calculateExperience } from '../utils/salaryCalculations';
 import SalaryHikeHistory from './SalaryHikeHistory';
 import LocationManager from './LocationManager';
 import SalaryCategoryManager from './SalaryCategoryManager';
+import { locationService, Location } from '../services/locationService';
+import { salaryCategoryService, SalaryCategory } from '../services/salaryCategoryService';
 
 interface StaffManagementProps {
   staff: Staff[];
@@ -28,6 +30,8 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   const [deleteReason, setDeleteReason] = useState('');
   const [showLocationManager, setShowLocationManager] = useState(false);
   const [showSalaryCategoryManager, setShowSalaryCategoryManager] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [salaryCategories, setSalaryCategories] = useState<SalaryCategory[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +43,29 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
   });
 
   const activeStaff = staff.filter(member => member.isActive);
+
+  useEffect(() => {
+    loadLocations();
+    loadSalaryCategories();
+  }, []);
+
+  const loadLocations = async () => {
+    try {
+      const data = await locationService.getAll();
+      setLocations(data);
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
+  const loadSalaryCategories = async () => {
+    try {
+      const data = await salaryCategoryService.getAll();
+      setSalaryCategories(data);
+    } catch (error) {
+      console.error('Error loading salary categories:', error);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -185,9 +212,9 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 onChange={(e) => setFormData({ ...formData, location: e.target.value as Staff['location'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="Big Shop">Big Shop</option>
-                <option value="Small Shop">Small Shop</option>
-                <option value="Godown">Godown</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.display_name}>{loc.display_name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -200,36 +227,22 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Basic Salary</label>
-              <input
-                type="number"
-                value={formData.basicSalary}
-                onChange={(e) => setFormData({ ...formData, basicSalary: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Incentive</label>
-              <input
-                type="number"
-                value={formData.incentive}
-                onChange={(e) => setFormData({ ...formData, incentive: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HRA</label>
-              <input
-                type="number"
-                value={formData.hra}
-                onChange={(e) => setFormData({ ...formData, hra: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
+            {salaryCategories.map((category) => {
+              const fieldName = category.name as keyof typeof formData;
+              const value = formData[fieldName] || 0;
+              return (
+                <div key={category.id}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{category.display_name}</label>
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => setFormData({ ...formData, [fieldName]: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              );
+            })}
             <div className="md:col-span-2 lg:col-span-3 form-actions flex gap-3">
               <button
                 type="submit"
@@ -298,13 +311,19 @@ const StaffManagement: React.FC<StaffManagementProps> = ({
       {/* Location Manager */}
       <LocationManager
         isOpen={showLocationManager}
-        onClose={() => setShowLocationManager(false)}
+        onClose={() => {
+          setShowLocationManager(false);
+          loadLocations();
+        }}
       />
 
       {/* Salary Category Manager */}
       <SalaryCategoryManager
         isOpen={showSalaryCategoryManager}
-        onClose={() => setShowSalaryCategoryManager(false)}
+        onClose={() => {
+          setShowSalaryCategoryManager(false);
+          loadSalaryCategories();
+        }}
       />
 
       {/* Salary History Modal */}
