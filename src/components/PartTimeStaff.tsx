@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Attendance, PartTimeSalaryDetail } from '../types';
 import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
 import { exportSalaryToExcel, exportSalaryPDF, exportPartTimeSalaryPDF } from '../utils/exportUtils';
+import { locationService, Location } from '../services/locationService';
 
 interface PartTimeStaffProps {
   attendance: Attendance[];
@@ -44,9 +45,10 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     leavingTime: ''
   });
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
-  const [locationFilter, setLocationFilter] = useState<'All' | 'Big Shop' | 'Small Shop' | 'Godown'>(
-    userLocation ? userLocation as any : 'All'
+  const [locationFilter, setLocationFilter] = useState<string>(
+    userLocation ? userLocation : 'All'
   );
+  const [locations, setLocations] = useState<Location[]>([]);
   const [reportType, setReportType] = useState<'monthly' | 'weekly' | 'dateRange'>('weekly');
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [dateRange, setDateRange] = useState({
@@ -61,29 +63,39 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     leavingTime: ''
   });
 
-  // Get recent names for smart suggestions
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const loadLocations = async () => {
+    try {
+      const data = await locationService.getAll();
+      setLocations(data);
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
   const getRecentNames = () => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     let recentAttendance = attendance.filter(record => {
       const recordDate = new Date(record.date);
-      return record.isPartTime && 
-             recordDate >= thirtyDaysAgo && 
+      return record.isPartTime &&
+             recordDate >= thirtyDaysAgo &&
              record.staffName;
     });
 
-    // Filter by location unless it's Sunday or "All" locations
     const today = new Date();
     const isSunday = today.getDay() === 0;
-    
+
     if (!isSunday && userLocation) {
       recentAttendance = recentAttendance.filter(record => record.location === userLocation);
     }
 
-    // Get unique names
     const uniqueNames = [...new Set(recentAttendance.map(record => record.staffName))];
-    return uniqueNames.slice(0, 10); // Limit to 10 suggestions
+    return uniqueNames.slice(0, 10);
   };
 
   const recentNames = getRecentNames();
@@ -416,7 +428,8 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
     if (userLocation) {
       return [userLocation];
     }
-    return ['All', 'Big Shop', 'Small Shop', 'Godown'];
+    const locNames = locations.map(loc => loc.display_name);
+    return ['All', ...locNames];
   };
 
   return (
@@ -491,9 +504,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 disabled={!!userLocation}
               >
-                <option value="Big Shop">Big Shop</option>
-                <option value="Small Shop">Small Shop</option>
-                <option value="Godown">Godown</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.display_name}>{loc.display_name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -658,9 +671,9 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                               onChange={(e) => setEditData({...editData, location: e.target.value})}
                               className="px-2 py-1 text-xs border rounded"
                             >
-                              <option value="Big Shop">Big Shop</option>
-                              <option value="Small Shop">Small Shop</option>
-                              <option value="Godown">Godown</option>
+                              {locations.map((loc) => (
+                                <option key={loc.id} value={loc.display_name}>{loc.display_name}</option>
+                              ))}
                             </select>
                             <select
                               value={editData.shift}

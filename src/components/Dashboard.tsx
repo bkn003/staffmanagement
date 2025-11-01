@@ -35,23 +35,12 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
   // Calculate total present value including half days (corrected logic)
   const totalPresentValue = presentToday + halfDayToday;
 
-  const locations = [
-    { 
-      name: 'Big Shop', 
-      color: 'bg-blue-100 text-blue-800', 
-      stats: calculateLocationAttendance(activeStaff, todayAttendance, today, 'Big Shop') 
-    },
-    { 
-      name: 'Small Shop', 
-      color: 'bg-green-100 text-green-800', 
-      stats: calculateLocationAttendance(activeStaff, todayAttendance, today, 'Small Shop') 
-    },
-    { 
-      name: 'Godown', 
-      color: 'bg-purple-100 text-purple-800', 
-      stats: calculateLocationAttendance(activeStaff, todayAttendance, today, 'Godown') 
-    }
-  ];
+  const locationColors = ['bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-purple-100 text-purple-800', 'bg-orange-100 text-orange-800', 'bg-red-100 text-red-800'];
+  const locationData = locations.map((loc, index) => ({
+    name: loc.display_name,
+    color: locationColors[index % locationColors.length],
+    stats: calculateLocationAttendance(activeStaff, todayAttendance, today, loc.display_name)
+  }));
 
   // Helper function to format staff names with shift info
   const formatStaffName = (staffId: string, isPartTime: boolean = false, staffName?: string, shift?: string) => {
@@ -170,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
         </h2>
         
         <div className="space-y-6">
-          {locations.map((location) => {
+          {locationData.map((location) => {
             // Calculate location-wise part-time breakdown
             const locationPartTimeData = partTimeAttendance.filter(record => 
               record.location === location.name
