@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Staff, Attendance } from '../types';
 import { Users, Clock, Calendar, MapPin, TrendingUp } from 'lucide-react';
 import { calculateLocationAttendance } from '../utils/salaryCalculations';
+import { locationService, Location } from '../services/locationService';
 
 interface DashboardProps {
   staff: Staff[];
