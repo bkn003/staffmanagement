@@ -10,13 +10,28 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }) => {
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const loadLocations = async () => {
+    try {
+      const data = await locationService.getAll();
+      setLocations(data);
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
   const today = new Date().toISOString().split('T')[0];
   const todayAttendance = attendance.filter(record => record.date === today);
-  
+
   const activeStaff = staff.filter(member => member.isActive);
   const fullTimeStaff = activeStaff.filter(member => member.type === 'full-time');
   const partTimeStaff = activeStaff.filter(member => member.type === 'part-time');
-  
+
   // Full-time attendance
   const fullTimeAttendance = todayAttendance.filter(record => !record.isPartTime);
   const presentToday = fullTimeAttendance.filter(record => record.status === 'Present').length;
@@ -25,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
 
   // Part-time attendance
   const partTimeAttendance = todayAttendance.filter(record => record.isPartTime && record.status === 'Present');
-  
+
   // Calculate part-time breakdown for top summary card
   const partTimeBoth = partTimeAttendance.filter(record => record.shift === 'Both').length;
   const partTimeMorning = partTimeAttendance.filter(record => record.shift === 'Morning').length;
