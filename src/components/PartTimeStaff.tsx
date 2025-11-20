@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Attendance, PartTimeSalaryDetail } from '../types';
+import { Attendance, PartTimeSalaryDetail, Staff } from '../types';
 import { Clock, Plus, Download, Calendar, DollarSign, Edit2, Save, X, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { calculatePartTimeSalary, getPartTimeDailySalary, isSunday } from '../utils/salaryCalculations';
 import { exportSalaryToExcel, exportSalaryPDF, exportPartTimeSalaryPDF } from '../utils/exportUtils';
@@ -425,11 +425,12 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
 
   // Filter locations based on user role
   const getAvailableLocations = () => {
+    const locNames = locations.map(loc => loc.display_name);
+    const baseOptions = ['All', ...locNames];
     if (userLocation) {
       return [userLocation];
     }
-    const locNames = locations.map(loc => loc.display_name);
-    return ['All', ...locNames];
+    return baseOptions;
   };
 
   return (
@@ -502,11 +503,14 @@ const PartTimeStaff: React.FC<PartTimeStaffProps> = ({
                 value={newStaffData.location}
                 onChange={(e) => setNewStaffData({ ...newStaffData, location: e.target.value as any })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                disabled={!!userLocation}
               >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.display_name}>{loc.display_name}</option>
-                ))}
+                {userLocation ? (
+                  <option value={userLocation}>{userLocation}</option>
+                ) : (
+                  locations.map((loc) => (
+                    <option key={loc.id} value={loc.display_name}>{loc.display_name}</option>
+                  ))
+                )}
               </select>
             </div>
             <div>

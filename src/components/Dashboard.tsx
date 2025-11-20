@@ -97,6 +97,73 @@ const Dashboard: React.FC<DashboardProps> = ({ staff, attendance, selectedDate }
         </div>
       </div>
 
+      {/* Today's Attendance Summary */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Users className="text-blue-600" size={20} />
+          Overall Today's Attendance
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <p className="text-sm text-gray-600 mb-2">Full-Time Present</p>
+            <p className="text-3xl font-bold text-green-600">{presentToday}</p>
+            <p className="text-xs text-gray-500 mt-2">Including {halfDayToday} half-day</p>
+            {presentToday > 0 && (
+              <div className="mt-2 text-xs text-gray-700 max-h-20 overflow-y-auto">
+                {fullTimeAttendance
+                  .filter(record => record.status === 'Present')
+                  .map(record => {
+                    const staffMember = activeStaff.find(s => s.id === record.staffId);
+                    return (
+                      <div key={record.id} className="truncate">{staffMember?.name}</div>
+                    );
+                  })
+                }
+              </div>
+            )}
+          </div>
+
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <p className="text-sm text-gray-600 mb-2">Full-Time Half-Day</p>
+            <p className="text-3xl font-bold text-yellow-600">{halfDayToday}</p>
+            <p className="text-xs text-gray-500 mt-2">Partial attendance</p>
+            {halfDayToday > 0 && (
+              <div className="mt-2 text-xs text-gray-700 max-h-20 overflow-y-auto">
+                {fullTimeAttendance
+                  .filter(record => record.status === 'Half Day')
+                  .map(record => {
+                    const staffMember = activeStaff.find(s => s.id === record.staffId);
+                    return (
+                      <div key={record.id} className="truncate">{staffMember?.name}</div>
+                    );
+                  })
+                }
+              </div>
+            )}
+          </div>
+
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <p className="text-sm text-gray-600 mb-2">Full-Time Absent</p>
+            <p className="text-3xl font-bold text-red-600">{absentToday}</p>
+            <p className="text-xs text-gray-500 mt-2">Not present</p>
+            {absentToday > 0 && (
+              <div className="mt-2 text-xs text-gray-700 max-h-20 overflow-y-auto">
+                {fullTimeAttendance
+                  .filter(record => record.status === 'Absent')
+                  .map(record => {
+                    const staffMember = activeStaff.find(s => s.id === record.staffId);
+                    return (
+                      <div key={record.id} className="truncate">{staffMember?.name}</div>
+                    );
+                  })
+                }
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="dashboard-stats stats-grid grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6">
         <div className="stats-card bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

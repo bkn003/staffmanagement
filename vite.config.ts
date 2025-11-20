@@ -7,4 +7,18 @@ export default defineConfig({
   optimizeDeps: {
     include: ['lucide-react'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+          excel: ['xlsx'],
+          supabase: ['@supabase/supabase-js'],
+          icons: ['lucide-react'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+  }
 });
